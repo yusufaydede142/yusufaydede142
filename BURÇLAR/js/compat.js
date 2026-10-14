@@ -2,7 +2,7 @@
 (function (global) {
   'use strict';
   const D = global.ZodiacData || (typeof require !== 'undefined' ? require('./data.js') : null);
-  const { SIGNS, RAW, CATEGORIES, ELEMENT_PAIRS, ASPECTS, MODALITY_PAIRS } = D;
+  const { SIGNS, RAW, CATEGORIES, ELEMENT_PAIRS, ASPECTS, MODALITY_PAIRS, SYN_PAIRS, SYN_ASPECTS, PLANET_LABELS } = D;
 
   const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
   const ELEMENT_ORDER = ['Ateş', 'Toprak', 'Hava', 'Su'];
@@ -158,6 +158,88 @@
     return { elements: pct(el), modalities: pct(mo) };
   }
 
-  global.Compat = { analyze, signPair, balance, levelOf, aspectDistance };
+
+  /**
+   * İki kişinin doğum haritasını karşılaştırır (sinastri).
+   * A = kullanıcı, B = partner
+   */
+  function synastry(A, B) {
+    const PA = A.planets, PB = B.planets;
+    // Saat bilinmiyorsa Ay'ın derecesi ±6° oynayabilir; derece açılarında Ay'ı kullanma
+    const degreeOk = (chart, key) => chart.timeKnown || (key !== 'moon' && key !== 'asc');
+
+    const catSum = {}, catW = {};
+    CATEGORIES.forEach((c) => { catSum[c.key] = 0; catW[c.key] = 0; });
+    const addCat = (keys, val, w) => keys.forEach((k) => { catSum[k] += val * w; catW[k] += w; });
+
+    const signRows = [];
+    const aspects = [];
+    let total = 0, totalW = 0, aspectEffect = 0;
+
+    const checkPair = (pair, x, y, who) => {
+      const px = (who === 'AB' ? PA : PB)[x];
+      const py = (who === 'AB' ? PB : PA)[y];
+      if (!px || !py) return;
+      const raw = RAW[px.sign][py.sign];
+      total += raw * pair.weight; totalW += pair.weight;
+      addCat(pair.cats, raw, pair.weight);
+      const cx = who === 'AB' ? A : B, cy = who === 'AB' ? B : A;
+      if (!degreeOk(cx, x) || !degreeOk(cy, y)) return;
+      let d = Math.abs(px.lon - py.lon) % 360;
+      if (d > 180) d = 360 - d;
+      const asp = SYN_ASPECTS.find((s) => Math.abs(d - s.angle) <= s.orb);
+      if (!asp) return;
+      const orb = Math.abs(d - asp.angle);
+      const strength = 1 - orb / (asp.orb + 1); // tam açıya yakınlık
+      const eff = asp.effect * pair.weight * strength;
+      aspectEffect += eff;
+      pair.cats.forEach((k) => { catSum[k] += eff * 2.5 + (k === 'tutku' ? asp.tutku * 2 : 0); });
+      aspects.push({ x, y, who, aspect: asp, orb, pair, effect: eff });
+    };
+
+    SYN_PAIRS.forEach((pair) => {
+      checkPair(pair, pair.a, pair.b, 'AB');
+      if (pair.both) checkPair(pair, pair.a, pair.b, 'BA');
+    });
+
+    // Gezegen karşılaştırma tablosu
+    ['sun', 'moon', 'asc', 'mercury', 'venus', 'mars'].forEach((k) => {
+      if (PA[k] && PB[k]) signRows.push({ key: k, a: PA[k].sign, b: PB[k].sign, raw: RAW[PA[k].sign][PB[k].sign] });
+      else signRows.push({ key: k, a: PA[k] ? PA[k].sign : null, b: PB[k] ? PB[k].sign : null, raw: null });
+    });
+
+    // 7. ev (alçalan) bağlantıları
+    const notes = [];
+    let houseBonus = 0;
+    const descLink = (from, to, toOwner, fromOwner) => {
+      if (!from.planets.asc) return;
+      const desc = (from.planets.asc.sign + 6) % 12;
+      ['sun', 'venus', 'moon'].forEach((k) => {
+        if (to.planets[k].sign === desc) {
+          houseBonus += k === 'moon' ? 2 : 3;
+          notes.push(`${toOwner} ${PLANET_LABELS[k].name}, ${fromOwner} 7. evine (evlilik ve ortaklık evi) düşüyor; ${fromOwner === 'senin' ? 'senin için' : 'onun için'} “aranan eş” enerjisini taşıyor.`);
+        }
+      });
+    };
+    descLink(A, B, 'Onun', 'senin');
+    descLink(B, A, 'Senin', 'onun');
+
+    const base = total / totalW;
+    const score = Math.round(clamp(base + clamp(aspectEffect, -12, 14) + houseBonus, 20, 99));
+
+    const cats = {};
+    CATEGORIES.forEach((c) => {
+      let v = catW[c.key] ? catSum[c.key] / catW[c.key] : base;
+      v = v + (score - base) * 0.4;
+      if (c.key === 'evlilik') v += houseBonus;
+      cats[c.key] = Math.round(clamp(v, 15, 98));
+    });
+
+    aspects.sort((p, q) => Math.abs(q.effect) - Math.abs(p.effect));
+    const sunPair = signPair(PA.sun.sign, PB.sun.sign);
+    return { score, level: levelOf(score), categories: cats, signRows, aspects, notes, sunPair };
+  }
+
+  global.Compat = { synastry, analyze, signPair, balance, levelOf, aspectDistance };
   if (typeof module !== 'undefined') module.exports = global.Compat;
 })(typeof window !== 'undefined' ? window : globalThis);

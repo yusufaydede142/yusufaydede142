@@ -13,6 +13,7 @@ Kurulum gerekmez, internet de gerekmez. `index.html` dosyasına çift tıklayıp
 - **Kişiselleştirilmiş uyum sıralaması (1–12):** Güneş burcu uyumu; Ay, Yükselen, Venüs/Mars (partner cinsiyetine göre çekim gezegeni) ve 7. ev (alçalan burç) ile birlikte değerlendirilir.
 - **8 kategoride uyum puanı:** Aşk, İletişim, Duygusal Bağ, Tutku, Güven, Ortak Değerler, Evlilik, Arkadaşlık.
 - **Her burç için detaylı rapor:** açı ilişkisi, element ve nitelik uyumu, yönetici gezegenler, haritandan kişisel notlar, güçlü yönler, zorluklar, o burcun erkeği/kadını hakkında bilgi, kalbini kazanma ipuçları ve tavsiyeler.
+- **Belirli biriyle uyum (sinastri):** Partnerin doğum bilgilerini girince iki harita gezegen gezegen karşılaştırılır; Güneş–Ay, Venüs–Mars gibi açılar, evlilik evi bağlantıları, kategori puanları ve yan yana harita tablosu gösterilir.
 - **Arkadaşlık uyumu** sekmesi, element/nitelik dağılımı, kişilik profili, yazdırma / PDF.
 
 ## Dosyalar

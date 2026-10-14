@@ -219,3 +219,23 @@ select option, select optgroup { background: #1d1946; color: var(--text); }
 }
 
 .tab[aria-selected="true"] { background: linear-gradient(135deg, #7c3aed, #c026d3); border-color: transparent; }
+
+/* Partner karşılaştırma */
+#synResult:not(:empty) { margin-top: 24px; padding-top: 20px; border-top: 1px solid var(--card-border); }
+.syn h3 { color: var(--accent); margin: 20px 0 8px; }
+.syn-head { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; text-align: center; }
+.syn-person { display: flex; flex-direction: column; align-items: center; }
+.syn-person .sym { font-size: 2.6rem; line-height: 1.2; }
+.syn-score .pct { font-size: 2.6rem; font-weight: 800; line-height: 1; }
+.table-wrap { overflow-x: auto; }
+.syn-table { width: 100%; border-collapse: collapse; font-size: .92rem; }
+.syn-table th, .syn-table td { padding: 8px 10px; border-bottom: 1px solid var(--card-border); text-align: left; }
+.syn-table th { color: var(--muted); font-weight: 600; }
+.aspect-list { list-style: none; padding: 0; margin: 0; }
+.aspect-list li { background: rgba(0, 0, 0, .22); border-radius: 12px; padding: 10px 12px; margin-bottom: 8px; font-size: .93rem; }
+@media (max-width: 480px) {
+  .syn-person .sym, .syn-score .pct { font-size: 1.9rem; }
+  .syn-table { font-size: .82rem; }
+  .syn-table th, .syn-table td { padding: 6px; }
+}
+@media print { #partnerForm { display: none; } .aspect-list li { background: #fff; border: 1px solid #ccc; } }

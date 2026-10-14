@@ -402,6 +402,30 @@
     mercury: { name: 'Merkür', icon: '☿', desc: 'Düşünme ve iletişim tarzın' }
   };
 
-  global.ZodiacData = { SIGNS, RAW, CATEGORIES, ELEMENT_PAIRS, ASPECTS, MODALITY_PAIRS, PLANET_NATURE, PLACEMENTS, PLANET_LABELS };
+
+  /* İki kişinin haritası arasındaki (sinastri) açılar */
+  const SYN_PAIRS = [
+    { a: 'sun', b: 'moon', both: true, weight: 1.4, cats: ['ask', 'duygu', 'evlilik'], theme: 'Güneş–Ay teması, kimlik ile duygunun buluşmasıdır; geleneksel astrolojide en güçlü evlilik göstergelerinden biri sayılır. Biriniz diğerinin ruhuna ışık tutar.' },
+    { a: 'venus', b: 'mars', both: true, weight: 1.4, cats: ['ask', 'tutku'], theme: 'Venüs–Mars teması romantik ve fiziksel çekimi anlatır. Biri sevgiyi, diğeri arzuyu temsil eder; aradaki kıvılcımın kaynağı budur.' },
+    { a: 'moon', b: 'moon', weight: 1.2, cats: ['duygu', 'evlilik', 'guven'], theme: 'Ay–Ay teması duygusal ihtiyaçlarınızın, günlük alışkanlıklarınızın ve “ev” anlayışınızın ne kadar örtüştüğünü gösterir.' },
+    { a: 'sun', b: 'sun', weight: 1.0, cats: ['deger', 'arkadas'], theme: 'Güneş–Güneş teması kimliklerinizin ve yaşam amaçlarınızın birbiriyle nasıl etkileştiğini gösterir.' },
+    { a: 'moon', b: 'venus', both: true, weight: 1.1, cats: ['duygu', 'ask', 'guven'], theme: 'Ay–Venüs teması şefkat ve sevgiyi anlatır; birbirinize kendinizi güvende ve sevilmiş hissettirme becerinizdir.' },
+    { a: 'sun', b: 'venus', both: true, weight: 1.0, cats: ['ask', 'deger'], theme: 'Güneş–Venüs teması hayranlık ve beğeniyi anlatır; biriniz diğerini doğal olarak çekici ve değerli bulur.' },
+    { a: 'venus', b: 'venus', weight: 0.8, cats: ['ask', 'deger'], theme: 'Venüs–Venüs teması aşk dillerinizin, zevklerinizin ve estetik anlayışınızın uyumunu gösterir.' },
+    { a: 'mercury', b: 'mercury', weight: 0.9, cats: ['iletisim', 'arkadas'], theme: 'Merkür–Merkür teması düşünme ve konuşma tarzlarınızı karşılaştırır; ne kadar kolay anlaştığınızı gösterir.' },
+    { a: 'mars', b: 'mars', weight: 0.6, cats: ['tutku'], theme: 'Mars–Mars teması enerjinizin, hırsınızın ve öfke tarzlarınızın nasıl etkileştiğini gösterir.' },
+    { a: 'asc', b: 'sun', both: true, weight: 0.9, cats: ['ask', 'arkadas'], theme: 'Yükselen–Güneş teması ilk izlenimde birbirinize nasıl göründüğünüzü anlatır.' },
+    { a: 'asc', b: 'venus', both: true, weight: 0.8, cats: ['ask', 'tutku'], theme: 'Yükselen–Venüs teması dış görünüş ve tarz üzerinden doğan çekimi anlatır.' }
+  ];
+
+  const SYN_ASPECTS = [
+    { angle: 0, orb: 8, name: 'Kavuşum', effect: 6, tutku: 3, text: 'Bu alanda enerjileriniz birleşiyor; etkisi çok yoğun ve belirgin hissedilir.' },
+    { angle: 60, orb: 5, name: 'Altmışlık', effect: 4, tutku: 0, text: 'Kolayca gelişen, destekleyici ve dostane bir uyum var.' },
+    { angle: 90, orb: 6, name: 'Kare', effect: -5, tutku: 5, text: 'Güçlü bir çekim ama aynı zamanda sürtüşme var; bu alan emek ve anlayış ister.' },
+    { angle: 120, orb: 7, name: 'Üçgen', effect: 6, tutku: 1, text: 'Doğal, akıcı ve zahmetsiz bir uyum var; birbirinizi bu konuda kolayca anlarsınız.' },
+    { angle: 180, orb: 7, name: 'Karşıt', effect: 1, tutku: 5, text: 'Zıtların çekimi: birbirinizi tamamlarsınız ama denge kurmanız gerekir.' }
+  ];
+
+  global.ZodiacData = { SYN_PAIRS, SYN_ASPECTS, SIGNS, RAW, CATEGORIES, ELEMENT_PAIRS, ASPECTS, MODALITY_PAIRS, PLANET_NATURE, PLACEMENTS, PLANET_LABELS };
   if (typeof module !== 'undefined') module.exports = global.ZodiacData;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -11,8 +11,7 @@
 
   /* ---------- Form hazırlığı ---------- */
 
-  function fillPlaces() {
-    const sel = $('birthPlace');
+  function buildPlaceOptions(sel) {
     const og1 = document.createElement('optgroup');
     og1.label = 'Türkiye';
     window.Cities.turkey.forEach((c, i) => og1.appendChild(new Option(c.name, 'tr:' + i)));
@@ -23,7 +22,10 @@
     og3.label = 'Diğer';
     og3.appendChild(new Option('Listede yok – koordinat gireceğim', 'custom'));
     sel.append(new Option('Şehir seçin…', ''), og1, og2, og3);
+  }
 
+  function fillPlaces() {
+    buildPlaceOptions($('birthPlace'));
     const off = $('manualOffset');
     off.appendChild(new Option('Otomatik (önerilir)', ''));
     for (let h = -12; h <= 14; h += 0.5) {
@@ -32,14 +34,15 @@
     }
   }
 
-  function getPlace() {
-    const v = $('birthPlace').value;
+  function getPlace(prefix) {
+    const id = (x) => (prefix ? prefix + x : x.charAt(0).toLowerCase() + x.slice(1));
+    const v = $(id('BirthPlace')).value;
     if (v.startsWith('tr:')) return window.Cities.turkey[+v.slice(3)];
     if (v.startsWith('w:')) return window.Cities.world[+v.slice(2)];
     if (v === 'custom') {
-      const lat = parseFloat($('customLat').value);
-      const lon = parseFloat($('customLon').value);
-      const tz = parseFloat($('customTz').value);
+      const lat = parseFloat($(id('CustomLat')).value);
+      const lon = parseFloat($(id('CustomLon')).value);
+      const tz = parseFloat($(id('CustomTz')).value);
       if ([lat, lon, tz].some(Number.isNaN) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
       return { name: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, lat, lon, tz, dst: 'NONE' };
     }
@@ -71,7 +74,7 @@
         if (!$('birthTime').value) { err.textContent = 'Lütfen doğum saatini gir ya da “bilmiyorum” kutusunu işaretle.'; return; }
         [hour, minute] = $('birthTime').value.split(':').map(Number);
       }
-      const place = getPlace();
+      const place = getPlace('');
       if (!place) { err.textContent = $('birthPlace').value === 'custom' ? 'Lütfen geçerli enlem, boylam ve UTC farkı gir.' : 'Lütfen doğum yerini seç.'; return; }
 
       const input = {
@@ -122,9 +125,10 @@
     const bal = window.Compat.balance(chart);
     const out = $('results');
     out.innerHTML = renderHero(input, chart) + renderPlanets(chart) + renderBalance(bal) +
-      renderProfile(input, chart) + renderRankings(input, chart, analysis);
+      renderProfile(input, chart) + renderRankings(input, chart, analysis) + renderPartnerCard(input);
     out.classList.remove('hidden');
     bindResults(input, chart, analysis);
+    bindPartner(input, chart);
     out.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -391,6 +395,177 @@
       document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
       document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
     }));
+  }
+
+
+  /* ---------- Belirli biriyle karşılaştırma (sinastri) ---------- */
+
+  const PARTNER_KEY = 'burc-uyum-partner';
+
+  function renderPartnerCard(input) {
+    const pg = input.partner;
+    return `<div class="card" id="partnerCard">
+      <h2>💑 Belirli Biriyle Uyumunu Hesapla</h2>
+      <p class="muted">Sevgilinin, eşinin ya da hoşlandığın kişinin doğum bilgilerini gir; iki doğum haritası gezegen gezegen karşılaştırılsın.</p>
+      <form id="partnerForm" novalidate>
+        <div class="grid">
+          <label class="field"><span>Onun adı <small>(isteğe bağlı)</small></span><input type="text" id="pName" maxlength="40" placeholder="Örn. Mehmet"></label>
+          <div class="field"><span>Cinsiyeti</span>
+            <div class="segmented" role="radiogroup">
+              <label><input type="radio" name="pGender" value="kadin" ${pg === 'kadin' ? 'checked' : ''}><span>♀ Kadın</span></label>
+              <label><input type="radio" name="pGender" value="erkek" ${pg === 'erkek' ? 'checked' : ''}><span>♂ Erkek</span></label>
+            </div>
+          </div>
+          <label class="field"><span>Doğum tarihi</span><input type="date" id="pBirthDate" min="1900-01-01"></label>
+          <div class="field"><span>Doğum saati</span><input type="time" id="pBirthTime" value="12:00">
+            <label class="check"><input type="checkbox" id="pTimeUnknown"> Doğum saatini bilmiyorum</label></div>
+          <label class="field full"><span>Doğum yeri</span><select id="pBirthPlace"></select></label>
+          <div class="field full hidden" id="pCustomPlace"><div class="grid three">
+            <label class="field"><span>Enlem (Kuzey +)</span><input type="number" id="pCustomLat" step="0.01" min="-90" max="90"></label>
+            <label class="field"><span>Boylam (Doğu +)</span><input type="number" id="pCustomLon" step="0.01" min="-180" max="180"></label>
+            <label class="field"><span>UTC farkı (saat)</span><input type="number" id="pCustomTz" step="0.5" min="-12" max="14"></label>
+          </div></div>
+        </div>
+        <p class="error" id="pError" role="alert"></p>
+        <button type="submit" class="btn primary">💞 Uyumumuzu Hesapla</button>
+      </form>
+      <div id="synResult"></div>
+    </div>`;
+  }
+
+  function bindPartner(input, chartA) {
+    buildPlaceOptions($('pBirthPlace'));
+    $('pBirthDate').max = new Date().toISOString().slice(0, 10);
+    $('pTimeUnknown').addEventListener('change', (e) => { $('pBirthTime').disabled = e.target.checked; });
+    $('pBirthPlace').addEventListener('change', (e) => { $('pCustomPlace').classList.toggle('hidden', e.target.value !== 'custom'); });
+
+    let saved = null;
+    try { saved = JSON.parse(localStorage.getItem(PARTNER_KEY) || 'null'); } catch (e) { saved = null; }
+    if (saved) {
+      $('pName').value = saved.name || '';
+      const g = document.querySelector(`input[name="pGender"][value="${saved.gender}"]`); if (g) g.checked = true;
+      $('pBirthDate').value = saved.date || '';
+      $('pBirthTime').value = saved.time || '12:00';
+      $('pTimeUnknown').checked = !!saved.unknown; $('pBirthTime').disabled = !!saved.unknown;
+      $('pBirthPlace').value = saved.place || '';
+      $('pCustomPlace').classList.toggle('hidden', saved.place !== 'custom');
+      $('pCustomLat').value = saved.lat || ''; $('pCustomLon').value = saved.lon || ''; $('pCustomTz').value = saved.tz || '';
+    }
+
+    $('partnerForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const err = $('pError');
+      err.textContent = '';
+      const dateStr = $('pBirthDate').value;
+      const today = new Date().toISOString().slice(0, 10);
+      if (!dateStr || dateStr < '1900-01-01' || dateStr > today) { err.textContent = 'Lütfen onun geçerli doğum tarihini gir.'; return; }
+      const [year, month, day] = dateStr.split('-').map(Number);
+      const timeKnown = !$('pTimeUnknown').checked;
+      let hour = 12, minute = 0;
+      if (timeKnown) {
+        if (!$('pBirthTime').value) { err.textContent = 'Lütfen doğum saatini gir ya da “bilmiyorum” kutusunu işaretle.'; return; }
+        [hour, minute] = $('pBirthTime').value.split(':').map(Number);
+      }
+      const place = getPlace('p');
+      if (!place) { err.textContent = $('pBirthPlace').value === 'custom' ? 'Lütfen geçerli enlem, boylam ve UTC farkı gir.' : 'Lütfen onun doğum yerini seç.'; return; }
+      const pInput = {
+        name: $('pName').value.trim(),
+        gender: document.querySelector('input[name="pGender"]:checked').value,
+        year, month, day, hour, minute, timeKnown, place
+      };
+      try {
+        localStorage.setItem(PARTNER_KEY, JSON.stringify({
+          name: pInput.name, gender: pInput.gender, date: dateStr, time: $('pBirthTime').value, unknown: !timeKnown,
+          place: $('pBirthPlace').value, lat: $('pCustomLat').value, lon: $('pCustomLon').value, tz: $('pCustomTz').value
+        }));
+      } catch (e2) { /* depolama kullanılamıyor olabilir */ }
+
+      const chartB = window.Astro.computeChart(pInput);
+      const syn = window.Compat.synastry(chartA, chartB);
+      $('synResult').innerHTML = renderSynastry(input, chartA, pInput, chartB, syn);
+      $('synResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function renderSynastry(inA, A, inB, B, syn) {
+    const sa = SIGNS[A.planets.sun.sign], sb = SIGNS[B.planets.sun.sign];
+    const nameA = inA.name ? esc(inA.name) : 'Sen';
+    const nameB = inB.name ? esc(inB.name) : 'O';
+    const sp = syn.sunPair;
+    const cell = (k, sign, chart) => {
+      if (sign === null) return '<span class="muted">Saat gerekli</span>';
+      const u = chart.uncertain[k];
+      return u ? `${SIGNS[u[0]].symbol} ${SIGNS[u[0]].name} / ${SIGNS[u[1]].name}` : `${SIGNS[sign].symbol} ${SIGNS[sign].name}`;
+    };
+    const rows = syn.signRows.map((r) => {
+      const lvl = r.raw === null ? null : window.Compat.levelOf(r.raw);
+      return `<tr><td>${PLANET_LABELS[r.key].icon} ${PLANET_LABELS[r.key].name}</td><td>${cell(r.key, r.a, A)}</td><td>${cell(r.key, r.b, B)}</td>
+        <td>${lvl ? `<b class="${lvl.cls}">%${r.raw}</b>` : '–'}</td></tr>`;
+    }).join('');
+
+    const catBars = CATEGORIES.map((c) => `
+      <div class="bar-row"><span>${c.icon} ${c.label}</span><div class="bar"><i style="width:${syn.categories[c.key]}%"></i></div><b>%${syn.categories[c.key]}</b></div>`).join('');
+
+    const ownerName = (who, side) => (who === 'AB') === (side === 'x') ? 'Senin' : 'Onun';
+    const aspectItems = syn.aspects.map((a) => {
+      const good = a.effect >= 0;
+      return `<li><b>${good ? '✅' : '⚠️'} ${ownerName(a.who, 'x')} ${PLANET_LABELS[a.x].name} ↔ ${ownerName(a.who, 'y').toLowerCase()} ${PLANET_LABELS[a.y].name}: ${a.aspect.name}</b>
+        <small class="muted">(orb ${a.orb.toFixed(1)}°)</small><br>${a.aspect.text} ${a.pair.theme}</li>`;
+    }).join('');
+
+    const strongest = syn.aspects.filter((a) => a.effect > 0).slice(0, 1)[0];
+    const hardest = syn.aspects.filter((a) => a.effect < 0)[0];
+    const bestCat = CATEGORIES.slice().sort((x, y) => syn.categories[y.key] - syn.categories[x.key])[0];
+    const worstCat = CATEGORIES.slice().sort((x, y) => syn.categories[x.key] - syn.categories[y.key])[0];
+
+    let warn = '';
+    if (!inB.timeKnown || !inA.timeKnown) warn = '<div class="note">🕰 Doğum saatlerinden en az biri bilinmediği için Yükselen ve Ay ile ilgili derece açıları hesaba katılmadı; Ay burcu yalnızca burç düzeyinde karşılaştırıldı.</div>';
+
+    return `
+      <div class="syn">
+        <div class="syn-head">
+          <div class="syn-person"><div class="sym">${sa.symbol}</div><b>${nameA}</b><small class="muted">${sa.name} ${genderWord(inA.gender)}</small></div>
+          <div class="syn-score"><div class="pct ${syn.level.cls}">%${syn.score}</div><div class="${syn.level.cls}">${syn.level.label}</div></div>
+          <div class="syn-person"><div class="sym">${sb.symbol}</div><b>${nameB}</b><small class="muted">${sb.name} ${genderWord(inB.gender)}</small></div>
+        </div>
+        ${warn}
+        <h3>📝 Özet</h3>
+        <p>İkinizin harita uyumu <b class="${syn.level.cls}">%${syn.score} – ${syn.level.label}</b>. En güçlü olduğunuz alan <b>${bestCat.label}</b> (%${syn.categories[bestCat.key]}), en çok özen isteyen alan ise <b>${worstCat.label}</b> (%${syn.categories[worstCat.key]}).
+        ${strongest ? `Aranızdaki en güçlü olumlu bağ: <b>${ownerName(strongest.who, 'x')} ${PLANET_LABELS[strongest.x].name} – ${ownerName(strongest.who, 'y').toLowerCase()} ${PLANET_LABELS[strongest.y].name} ${strongest.aspect.name.toLowerCase()}</b>.` : ''}
+        ${hardest ? `Üzerinde çalışmanız gereken nokta: <b>${ownerName(hardest.who, 'x')} ${PLANET_LABELS[hardest.x].name} – ${ownerName(hardest.who, 'y').toLowerCase()} ${PLANET_LABELS[hardest.y].name} ${hardest.aspect.name.toLowerCase()}</b>.` : ''}</p>
+
+        <h3>📊 Kategori Puanları</h3>
+        <div class="bars">${catBars}</div>
+
+        <h3>🪐 Haritalarınız Yan Yana</h3>
+        <div class="table-wrap"><table class="syn-table">
+          <thead><tr><th>Gezegen</th><th>${nameA}</th><th>${nameB}</th><th>Uyum</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+
+        ${syn.notes.length ? `<h3>💍 Evlilik Evi Bağlantıları</h3><ul class="list-plus">${syn.notes.map((n) => `<li>${n}</li>`).join('')}</ul>` : ''}
+
+        <h3>✨ Aranızdaki Gezegen Açıları</h3>
+        ${aspectItems ? `<ul class="aspect-list">${aspectItems}</ul>` : '<p class="muted">Ana gezegenler arasında dar açı bulunamadı; uyumunuz daha çok burç düzeyindeki etkileşimlerle şekilleniyor.</p>'}
+
+        <h3>☉ Güneş Burçlarınız: ${sa.name} & ${sb.name}</h3>
+        <p><span class="badge">${sp.aspect.name}</span><span class="badge">${sa.element} + ${sb.element}</span><span class="badge">${sa.modality} + ${sb.modality}</span></p>
+        <p>${sp.aspect.text}</p>
+        <p>${sp.elem.text}</p>
+        <p>${sp.mod.text}</p>
+        <div class="two-col">
+          <div><h3>💪 Güçlü Yönleriniz</h3><ul class="list-plus">${sp.elem.plus.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+          <div><h3>⚡ Zorlayıcı Noktalar</h3><ul class="list-minus">${sp.elem.minus.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+        </div>
+
+        <h3>${sb.symbol} ${nameB === 'O' ? 'Onu Tanı' : nameB + ' Hakkında'}</h3>
+        <p>${inB.gender === 'erkek' ? sb.male : sb.female}</p>
+        <p><b>İhtiyaçları:</b> ${sb.needs} · <b>Ay burcu:</b> ${signLabel(B, 'moon')} — ${B.uncertain.moon ? 'o gün Ay burç değiştirdiği için kesin değil.' : 'duygusal olarak ihtiyacı: ' + SIGNS[B.planets.moon.sign].needs.toLowerCase()}</p>
+        <p><b>Kalbini kazanmak için:</b> ${inB.gender === 'erkek' ? sb.winMale : sb.winFemale}</p>
+
+        <h3>🧭 Tavsiye</h3>
+        <p>${sp.aspect.advice} ${adviceForElements(sa.element, sb.element)}</p>
+      </div>`;
   }
 
   fillPlaces();
