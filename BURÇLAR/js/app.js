@@ -1,0 +1,399 @@
+/* Arayüz: form, sonuç ekranı ve uyum raporları */
+(function () {
+  'use strict';
+  const { SIGNS, CATEGORIES, PLACEMENTS, PLANET_LABELS, PLANET_NATURE } = window.ZodiacData;
+  const $ = (id) => document.getElementById(id);
+  const STORAGE_KEY = 'burc-uyum-son-giris';
+
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const genderWord = (g) => (g === 'erkek' ? 'erkeği' : 'kadını');
+  const genderPlural = (g) => (g === 'erkek' ? 'Erkek' : 'Kadın');
+
+  /* ---------- Form hazırlığı ---------- */
+
+  function fillPlaces() {
+    const sel = $('birthPlace');
+    const og1 = document.createElement('optgroup');
+    og1.label = 'Türkiye';
+    window.Cities.turkey.forEach((c, i) => og1.appendChild(new Option(c.name, 'tr:' + i)));
+    const og2 = document.createElement('optgroup');
+    og2.label = 'Yurtdışı';
+    window.Cities.world.forEach((c, i) => og2.appendChild(new Option(`${c.name} (${c.country})`, 'w:' + i)));
+    const og3 = document.createElement('optgroup');
+    og3.label = 'Diğer';
+    og3.appendChild(new Option('Listede yok – koordinat gireceğim', 'custom'));
+    sel.append(new Option('Şehir seçin…', ''), og1, og2, og3);
+
+    const off = $('manualOffset');
+    off.appendChild(new Option('Otomatik (önerilir)', ''));
+    for (let h = -12; h <= 14; h += 0.5) {
+      if (h % 1 !== 0 && ![-3.5, 3.5, 4.5, 5.5, 9.5].includes(h)) continue;
+      off.appendChild(new Option('UTC' + (h >= 0 ? '+' : '') + h, String(h)));
+    }
+  }
+
+  function getPlace() {
+    const v = $('birthPlace').value;
+    if (v.startsWith('tr:')) return window.Cities.turkey[+v.slice(3)];
+    if (v.startsWith('w:')) return window.Cities.world[+v.slice(2)];
+    if (v === 'custom') {
+      const lat = parseFloat($('customLat').value);
+      const lon = parseFloat($('customLon').value);
+      const tz = parseFloat($('customTz').value);
+      if ([lat, lon, tz].some(Number.isNaN) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+      return { name: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, lat, lon, tz, dst: 'NONE' };
+    }
+    return null;
+  }
+
+  function bindForm() {
+    const today = new Date().toISOString().slice(0, 10);
+    $('birthDate').max = today;
+
+    $('timeUnknown').addEventListener('change', (e) => { $('birthTime').disabled = e.target.checked; });
+    $('birthPlace').addEventListener('change', (e) => { $('customPlace').classList.toggle('hidden', e.target.value !== 'custom'); });
+    document.querySelectorAll('input[name="gender"]').forEach((r) => r.addEventListener('change', () => {
+      const g = document.querySelector('input[name="gender"]:checked').value;
+      document.querySelector(`input[name="partner"][value="${g === 'kadin' ? 'erkek' : 'kadin'}"]`).checked = true;
+    }));
+
+    $('birthForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const err = $('formError');
+      err.textContent = '';
+      const dateStr = $('birthDate').value;
+      if (!dateStr) { err.textContent = 'Lütfen doğum tarihini gir.'; return; }
+      const [year, month, day] = dateStr.split('-').map(Number);
+      if (year < 1900 || dateStr > today) { err.textContent = 'Lütfen 1900 ile bugün arasında geçerli bir tarih gir.'; return; }
+      const timeKnown = !$('timeUnknown').checked;
+      let hour = 12, minute = 0;
+      if (timeKnown) {
+        if (!$('birthTime').value) { err.textContent = 'Lütfen doğum saatini gir ya da “bilmiyorum” kutusunu işaretle.'; return; }
+        [hour, minute] = $('birthTime').value.split(':').map(Number);
+      }
+      const place = getPlace();
+      if (!place) { err.textContent = $('birthPlace').value === 'custom' ? 'Lütfen geçerli enlem, boylam ve UTC farkı gir.' : 'Lütfen doğum yerini seç.'; return; }
+
+      const input = {
+        name: $('name').value.trim(),
+        gender: document.querySelector('input[name="gender"]:checked').value,
+        partner: document.querySelector('input[name="partner"]:checked').value,
+        year, month, day, hour, minute, timeKnown, place,
+        manualOffset: $('manualOffset').value
+      };
+      saveInput();
+      run(input);
+    });
+  }
+
+  function saveInput() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        name: $('name').value, gender: document.querySelector('input[name="gender"]:checked').value,
+        partner: document.querySelector('input[name="partner"]:checked').value,
+        date: $('birthDate').value, time: $('birthTime').value, unknown: $('timeUnknown').checked,
+        place: $('birthPlace').value, lat: $('customLat').value, lon: $('customLon').value, tz: $('customTz').value,
+        offset: $('manualOffset').value
+      }));
+    } catch (e) { /* depolama kullanılamıyor olabilir */ }
+  }
+
+  function restoreInput() {
+    let s;
+    try { s = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); } catch (e) { s = null; }
+    if (!s) return;
+    $('name').value = s.name || '';
+    const g = document.querySelector(`input[name="gender"][value="${s.gender}"]`); if (g) g.checked = true;
+    const p = document.querySelector(`input[name="partner"][value="${s.partner}"]`); if (p) p.checked = true;
+    $('birthDate').value = s.date || '';
+    $('birthTime').value = s.time || '12:00';
+    $('timeUnknown').checked = !!s.unknown; $('birthTime').disabled = !!s.unknown;
+    $('birthPlace').value = s.place || '';
+    $('customPlace').classList.toggle('hidden', s.place !== 'custom');
+    $('customLat').value = s.lat || ''; $('customLon').value = s.lon || ''; $('customTz').value = s.tz || '';
+    $('manualOffset').value = s.offset || '';
+  }
+
+  /* ---------- Hesaplama ve çizim ---------- */
+
+  function run(input) {
+    const chart = window.Astro.computeChart(input);
+    const analysis = window.Compat.analyze(chart, input.gender, input.partner);
+    const bal = window.Compat.balance(chart);
+    const out = $('results');
+    out.innerHTML = renderHero(input, chart) + renderPlanets(chart) + renderBalance(bal) +
+      renderProfile(input, chart) + renderRankings(input, chart, analysis);
+    out.classList.remove('hidden');
+    bindResults(input, chart, analysis);
+    out.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function signLabel(chart, key) {
+    const p = chart.planets[key];
+    const u = chart.uncertain[key];
+    if (u) return `${SIGNS[u[0]].name} / ${SIGNS[u[1]].name}`;
+    return SIGNS[p.sign].name;
+  }
+
+  function renderHero(input, chart) {
+    const sun = SIGNS[chart.planets.sun.sign];
+    const who = input.name ? esc(input.name) : 'Merhaba';
+    const dateStr = `${String(input.day).padStart(2, '0')}.${String(input.month).padStart(2, '0')}.${input.year}`;
+    const timeStr = input.timeKnown ? `${String(input.hour).padStart(2, '0')}:${String(input.minute).padStart(2, '0')}` : 'saat bilinmiyor';
+    const off = chart.utcOffset;
+    let notes = '';
+    if (chart.cusp) notes += `<div class="note">☄ Güneş'in burç sınırına çok yakın (${SIGNS[chart.cusp.other].name} geçişi). Kuspe doğumlular her iki burcun özelliklerini de taşıyabilir.</div>`;
+    if (!input.timeKnown) {
+      notes += '<div class="note">🕰 Doğum saatin bilinmediği için Yükselen burcun hesaplanamadı ve sonuçlar öğle saatine göre yapıldı.';
+      if (chart.uncertain.moon) notes += ` O gün Ay burç değiştirdiği için Ay burcun <b>${SIGNS[chart.uncertain.moon[0]].name}</b> veya <b>${SIGNS[chart.uncertain.moon[1]].name}</b> olabilir; uyum puanlarında ikisinin ortalaması kullanıldı.`;
+      notes += '</div>';
+    }
+    const chips = [
+      `☉ Güneş: ${signLabel(chart, 'sun')}`, `☽ Ay: ${signLabel(chart, 'moon')}`,
+      chart.planets.asc ? `AC Yükselen: ${SIGNS[chart.planets.asc.sign].name}` : null
+    ].filter(Boolean).map((c) => `<span class="chip">${c}</span>`).join('');
+    return `
+      <div class="card hero">
+        <div class="big-symbol">${sun.symbol}</div>
+        <h1>${who}${input.name ? ',' : '!'} sen bir ${sun.name} ${genderWord(input.gender)}sin</h1>
+        <p class="muted">${dateStr} · ${timeStr} · ${esc(input.place.name)} · UTC${off >= 0 ? '+' : ''}${off}</p>
+        <div class="chips">${chips}</div>
+        ${notes}
+        <div class="actions">
+          <button class="btn ghost" type="button" id="btnEdit">✏️ Bilgileri düzenle</button>
+          <button class="btn ghost" type="button" id="btnPrint">🖨️ Yazdır / PDF</button>
+        </div>
+      </div>`;
+  }
+
+  function renderPlanets(chart) {
+    const order = ['sun', 'moon', 'asc', 'venus', 'mars', 'mercury'];
+    const cards = order.map((k) => {
+      const p = chart.planets[k];
+      const L = PLANET_LABELS[k];
+      if (!p) {
+        return `<div class="planet"><div class="p-head"><div class="p-icon">${L.icon}</div><div><div class="p-name">${L.name}</div><div class="p-sign">Bilinmiyor</div></div></div>
+          <div class="p-desc">${L.desc}</div><p>Yükselen burç için doğum saatine ihtiyaç var.</p></div>`;
+      }
+      const s = SIGNS[p.sign];
+      const u = chart.uncertain[k];
+      const text = k === 'sun' ? s.summary.split('. ')[0] + '.' : (PLACEMENTS[k] ? PLACEMENTS[k][p.sign] : '');
+      return `<div class="planet">
+        <div class="p-head"><div class="p-icon">${L.icon}</div>
+          <div><div class="p-name">${L.name}</div><div class="p-sign">${s.symbol} ${u ? signLabel(chart, k) : s.name} <small class="muted">${u ? '' : window.Astro.formatDegree(p.lon)}</small></div></div></div>
+        <div class="p-desc">${L.desc}</div>
+        <p>${text}</p>
+      </div>`;
+    }).join('');
+    return `<div class="card"><h2>🪐 Doğum Haritan</h2><div class="planets">${cards}</div></div>`;
+  }
+
+  function bars(obj, elClass) {
+    return Object.entries(obj).map(([k, v]) => `
+      <div class="bar-row"><span class="${elClass ? 'el-' + k : ''}">${k}</span><div class="bar ${elClass ? 'el-' + k : ''}"><i style="width:${v}%"></i></div><b>%${v}</b></div>`).join('');
+  }
+
+  function renderBalance(bal) {
+    const domEl = Object.entries(bal.elements).sort((a, b) => b[1] - a[1])[0][0];
+    const lowEl = Object.entries(bal.elements).sort((a, b) => a[1] - b[1])[0][0];
+    const domMod = Object.entries(bal.modalities).sort((a, b) => b[1] - a[1])[0][0];
+    const elText = {
+      'Ateş': 'tutkulu, cesur ve hareket odaklı', 'Toprak': 'pratik, güvenilir ve istikrarlı',
+      'Hava': 'zihinsel, sosyal ve iletişim odaklı', 'Su': 'duygusal, sezgisel ve şefkatli'
+    };
+    const lowText = {
+      'Ateş': 'Hayatına heyecan ve cesaret katan partnerler sana iyi gelir.',
+      'Toprak': 'Ayaklarını yere bastıran, güven veren partnerler seni dengeler.',
+      'Hava': 'Seni konuşturan, bakış açını genişleten partnerler seni dengeler.',
+      'Su': 'Duygularını açmana yardım eden şefkatli partnerler seni dengeler.'
+    };
+    const modText = { 'Öncü': 'başlatan ve yön veren', 'Sabit': 'kararlı ve sadık', 'Değişken': 'esnek ve uyumlu' };
+    return `<div class="card">
+      <h2>⚖️ Enerji Dağılımın</h2>
+      <div class="two-col">
+        <div><h3>Elementler</h3><div class="bars">${bars(bal.elements, true)}</div></div>
+        <div><h3>Nitelikler</h3><div class="bars">${bars(bal.modalities, false)}</div></div>
+      </div>
+      <p style="margin-top:14px">Haritanda <b class="el-${domEl}">${domEl}</b> elementi baskın: ${elText[domEl]} bir yapın var. İlişkilerde ${modText[domMod]} bir tavır sergilersin.
+      ${bal.elements[lowEl] <= 10 ? `<b class="el-${lowEl}">${lowEl}</b> elementin zayıf. ${lowText[lowEl]}` : ''}</p>
+    </div>`;
+  }
+
+  function renderProfile(input, chart) {
+    const s = SIGNS[chart.planets.sun.sign];
+    const g = input.gender;
+    return `<div class="card">
+      <h2>${s.symbol} ${s.name} ${g === 'erkek' ? 'Erkeği' : 'Kadını'} Olarak Sen</h2>
+      <div>${s.keywords.map((k) => `<span class="badge">${k}</span>`).join('')}</div>
+      <p>${s.summary}</p>
+      <p>${g === 'erkek' ? s.male : s.female}</p>
+      <p><b>Aşkta:</b> ${s.inLove}</p>
+      <p><b>İlişkide ihtiyaçların:</b> ${s.needs}</p>
+      <div class="two-col">
+        <div><h3>Güçlü yönlerin</h3><ul class="list-plus">${s.strengths.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+        <div><h3>Dikkat etmen gerekenler</h3><ul class="list-minus">${s.weaknesses.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+      </div>
+      <div class="info-grid">
+        <div class="info"><b>${s.element}</b>Element</div>
+        <div class="info"><b>${s.modality}</b>Nitelik</div>
+        <div class="info"><b>${s.ruler}</b>Yönetici gezegen</div>
+        <div class="info"><b>${s.dates}</b>Tarih aralığı</div>
+        <div class="info"><b>${s.color}</b>Şanslı renk</div>
+        <div class="info"><b>${s.stone}</b>Şanslı taş</div>
+        <div class="info"><b>${s.day}</b>Şanslı gün</div>
+        <div class="info"><b>${s.polarity}</b>Polarite</div>
+      </div>
+    </div>`;
+  }
+
+  function renderRankings(input, chart, a) {
+    const pg = input.partner;
+    const top = a.ranking.slice(0, 3);
+    const medals = ['🥇', '🥈', '🥉'];
+    const podium = [1, 0, 2].map((i) => {
+      const r = top[i];
+      const s = SIGNS[r.sign];
+      return `<div class="pod ${i === 0 ? 'first' : ''}"><div class="medal">${medals[i]}</div><div class="sym">${s.symbol}</div>
+        <div class="nm">${s.name} ${genderWord(pg)}</div><div class="pct">%${r.score}</div><div class="${r.level.cls}" style="font-size:.78rem">${r.level.label}</div></div>`;
+    }).join('');
+
+    const loveList = a.ranking.map((r, i) => rankItem(r, i, pg, r.score, r.level, 'love')).join('');
+    const friendList = a.friendRanking.map((r, i) => rankItem(r, i, null, r.friendship, window.Compat.levelOf(r.friendship), 'friend')).join('');
+    const worst = a.ranking.slice(-3).reverse().map((r) => `${SIGNS[r.sign].name} (%${r.score})`).join(', ');
+
+    return `<div class="card" id="rankingCard">
+      <h2>💞 Sana En Uygun ${genderPlural(pg)} Burçları</h2>
+      <p class="muted">Sıralama; Güneş burcunun yanında Ay${chart.planets.asc ? ', Yükselen' : ''}, ${a.attractName} ve ${a.otherName} konumların hesaba katılarak kişiselleştirildi. Detaylı uyum raporu için bir burca dokun.</p>
+      <div class="tabs" role="tablist">
+        <button class="btn ghost tab" type="button" role="tab" data-tab="love" aria-selected="true">💘 Aşk & İlişki Uyumu</button>
+        <button class="btn ghost tab" type="button" role="tab" data-tab="friend" aria-selected="false">🌟 Arkadaşlık Uyumu</button>
+      </div>
+      <div data-panel="love">
+        <div class="podium">${podium}</div>
+        ${loveList}
+        <p class="muted" style="margin-top:12px">En çok emek isteyen eşleşmeler: <b>${worst}</b>. Bu, ilişkinin imkânsız olduğu anlamına gelmez; sadece daha fazla anlayış ve iletişim gerektirir.</p>
+      </div>
+      <div data-panel="friend" class="hidden">
+        <p class="muted">Cinsiyetten bağımsız olarak; sohbet, ortak ilgi alanları ve duygusal anlayış açısından en iyi anlaşabileceğin burçlar.</p>
+        ${friendList}
+      </div>
+    </div>`;
+  }
+
+  function rankItem(r, i, pg, score, level, mode) {
+    const s = SIGNS[r.sign];
+    const title = pg ? `${s.name} ${genderWord(pg)}` : s.name;
+    return `<details class="rank-item" data-sign="${r.sign}" data-mode="${mode}">
+      <summary>
+        <span class="rank-no">${i + 1}</span>
+        <span class="rank-sym">${s.symbol}</span>
+        <span><span class="rank-title">${title}</span><br><span class="rank-sub">${s.element} · ${s.modality} · ${s.dates}</span></span>
+        <span class="rank-score"><b class="${level.cls}">%${score}</b><span class="lvl ${level.cls}">${level.label}</span><span class="expand-hint">Detay</span></span>
+        <span class="mini-bar bar"><i style="width:${score}%"></i></span>
+      </summary>
+      <div class="detail"></div>
+    </details>`;
+  }
+
+  /* ---------- Detaylı uyum raporu ---------- */
+
+  function renderDetail(input, chart, a, signIdx, mode) {
+    const r = a.results[signIdx];
+    const me = SIGNS[chart.planets.sun.sign];
+    const s = SIGNS[signIdx];
+    const pg = input.partner;
+    const isFriend = mode === 'friend';
+    const score = isFriend ? r.friendship : r.score;
+    const lvl = window.Compat.levelOf(score);
+    const partnerTitle = isFriend ? s.name : `${s.name} ${genderWord(pg)}`;
+
+    const catBars = CATEGORIES.map((c) => `
+      <div class="bar-row"><span>${c.icon} ${c.label}</span><div class="bar"><i style="width:${r.categories[c.key]}%"></i></div><b>%${r.categories[c.key]}</b></div>`).join('');
+
+    const intro = isFriend
+      ? `${me.name} ve ${s.name} arasındaki arkadaşlık uyumu <b class="${lvl.cls}">%${score} – ${lvl.label}</b>.`
+      : `Sen (${me.name} ${genderWord(input.gender)}) ve ${partnerTitle} arasındaki kişisel uyum puanı <b class="${lvl.cls}">%${score} – ${lvl.label}</b>. Sadece Güneş burçlarına bakıldığında genel uyum %${r.base}.`;
+
+    const reasons = r.reasons.length
+      ? `<h3>🔭 Doğum Haritandan Kişisel Notlar</h3><ul class="reasons ${''}" style="list-style:none;padding:0">${r.reasons.map((x) => `<li>${x.type === 'plus' ? '✅' : '⚠️'} ${x.text}</li>`).join('')}</ul>`
+      : '';
+
+    const plus = r.elementText.plus.concat(r.aspectDist === 4 || r.aspectDist === 2 ? ['Doğal ve zahmetsiz bir uyum akışı'] : []);
+    const minus = r.elementText.minus.concat(r.aspectDist === 3 ? ['Farklı yöntemler sık sürtüşme yaratabilir'] : r.aspectDist === 6 ? ['Zıt bakış açıları kutuplaşmaya dönüşebilir'] : []);
+
+    const planetText = me.ruler === s.ruler
+      ? `İki burç da ${me.ruler} tarafından yönetiliyor: ${PLANET_NATURE[me.ruler]} konusunda aynı dili konuşuyorsunuz.`
+      : `Senin yönetici gezegenin ${me.ruler} (${PLANET_NATURE[me.ruler]}), ${s.name} burcununki ise ${s.ruler} (${PLANET_NATURE[s.ruler]}). Bu iki enerji birleştiğinde ilişkiye hem ${PLANET_NATURE[me.ruler].split(' ve ')[0]} hem de ${PLANET_NATURE[s.ruler].split(' ve ')[0]} katılır.`;
+
+    const aboutPartner = isFriend ? s.summary : (pg === 'erkek' ? s.male : s.female);
+    const winText = pg === 'erkek' ? s.winMale : s.winFemale;
+
+    return `
+      <h3>📊 Uyum Puanları</h3>
+      <p>${intro}</p>
+      <div class="bars">${catBars}</div>
+
+      <h3>🌌 Genel Değerlendirme</h3>
+      <p><span class="badge">${r.aspect.name}</span><span class="badge">${me.element} + ${s.element}</span><span class="badge">${me.modality} + ${s.modality}</span></p>
+      <p>${r.aspect.text}</p>
+      <p>${r.elementText.text}</p>
+      <p>${r.modality.text}</p>
+      <p>${planetText}</p>
+
+      ${reasons}
+
+      <div class="two-col">
+        <div><h3>💪 Güçlü Yönleriniz</h3><ul class="list-plus">${plus.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+        <div><h3>⚡ Zorlayıcı Noktalar</h3><ul class="list-minus">${minus.map((x) => `<li>${x}</li>`).join('')}</ul></div>
+      </div>
+
+      <h3>${s.symbol} ${partnerTitle} Hakkında</h3>
+      <p>${aboutPartner}</p>
+      <p><b>Anahtar kelimeler:</b> ${s.keywords.join(', ')} · <b>İhtiyaçları:</b> ${s.needs}</p>
+      ${isFriend ? '' : `<p><b>Aşkta:</b> ${s.inLove}</p><h3>💝 Onun Kalbini Nasıl Kazanırsın?</h3><p>${winText}</p>`}
+
+      <h3>🧭 Tavsiye</h3>
+      <p>${r.aspect.advice} ${adviceForElements(me.element, s.element)}</p>`;
+  }
+
+  function adviceForElements(a, b) {
+    const set = [a, b].sort().join('-');
+    const map = {
+      'Ateş-Ateş': 'Rekabeti ilişkinin dışında tutun ve birbirinize sakinleşme alanı tanıyın.',
+      'Toprak-Toprak': 'Rutini kırmak için düzenli olarak yeni deneyimler planlayın.',
+      'Hava-Hava': 'Konuşmalarınızı duygulara da taşıyın; “ne düşünüyorsun” kadar “ne hissediyorsun” da sorun.',
+      'Su-Su': 'Duygularınızı tahmin etmek yerine sözle ifade etmeyi alışkanlık edinin.',
+      'Ateş-Hava': 'Planlarınızı hayata geçirirken birbirinizin duygusal ihtiyaçlarını gözden kaçırmayın.',
+      'Su-Toprak': 'Güvenli limanınızı korurken birbirinizi konfor alanının dışına davet edin.',
+      'Ateş-Toprak': 'Tempo farkınızı kabul edin: biri gaz, diğeri fren olabilir — ikisi de gerekli.',
+      'Ateş-Su': 'Sözlerinizin tonuna dikkat edin; doğrudanlık ile hassasiyet arasında köprü kurun.',
+      'Hava-Toprak': 'Fikirleri somut planlara dönüştürmek için birlikte çalışın; bu ikinizi de güçlendirir.',
+      'Hava-Su': 'Mantık ile duyguyu yarıştırmayın; ikisinin de haklı olabileceği alanlar olduğunu kabul edin.'
+    };
+    return map[set] || '';
+  }
+
+  function bindResults(input, chart, a) {
+    $('btnEdit').addEventListener('click', () => $('formCard').scrollIntoView({ behavior: 'smooth' }));
+    $('btnPrint').addEventListener('click', () => {
+      document.querySelectorAll('.rank-item').forEach((d) => {
+        if (!d.querySelector('.detail').innerHTML) d.querySelector('.detail').innerHTML = renderDetail(input, chart, a, +d.dataset.sign, d.dataset.mode);
+      });
+      window.print();
+    });
+    document.querySelectorAll('.rank-item').forEach((d) => {
+      d.addEventListener('toggle', () => {
+        const box = d.querySelector('.detail');
+        if (d.open && !box.innerHTML) box.innerHTML = renderDetail(input, chart, a, +d.dataset.sign, d.dataset.mode);
+      });
+    });
+    document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+      document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
+    }));
+  }
+
+  fillPlaces();
+  bindForm();
+  restoreInput();
+})();
