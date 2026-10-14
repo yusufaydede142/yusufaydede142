@@ -14,6 +14,10 @@ Kurulum gerekmez, internet de gerekmez. `index.html` dosyasına çift tıklayıp
 - **8 kategoride uyum puanı:** Aşk, İletişim, Duygusal Bağ, Tutku, Güven, Ortak Değerler, Evlilik, Arkadaşlık.
 - **Her burç için detaylı rapor:** açı ilişkisi, element ve nitelik uyumu, yönetici gezegenler, haritandan kişisel notlar, güçlü yönler, zorluklar, o burcun erkeği/kadını hakkında bilgi, kalbini kazanma ipuçları ve tavsiyeler.
 - **Belirli biriyle uyum (sinastri):** Partnerin doğum bilgilerini girince iki harita gezegen gezegen karşılaştırılır; Güneş–Ay, Venüs–Mars gibi açılar, evlilik evi bağlantıları, kategori puanları ve yan yana harita tablosu gösterilir.
+- **Sana özel günlük / haftalık yorum:** O günün gerçek gezegen konumları doğum haritanla karşılaştırılır; günün teması, gökyüzü etkileri, aşk/iş/ruh hali puanları, Merkür geri uyarısı, haftanın en iyi günleri ve burç geçişleri.
+- **WhatsApp'ta paylaşma** ve metni kopyalama (kendi sonuçların ve partner uyumu için).
+- **Açık / koyu tema** seçeneği (sağ üstteki düğme, tercih hatırlanır).
+- **Ünlülerle uyum:** 85 Türk ve dünya ünlüsüyle kişisel uyum puanın; arama ve cinsiyet/köken filtresi.
 - **Arkadaşlık uyumu** sekmesi, element/nitelik dağılımı, kişilik profili, yazdırma / PDF.
 
 ## Dosyalar
@@ -25,6 +29,8 @@ Kurulum gerekmez, internet de gerekmez. `index.html` dosyasına çift tıklayıp
 | `js/data.js` | Burç bilgileri ve yorum metinleri |
 | `js/compat.js` | Uyum puanlama motoru |
 | `js/cities.js` | Şehir koordinatları ve saat dilimleri |
+| `js/horoscope.js` | Günlük / haftalık kişisel yorum |
+| `js/celebs.js` | Ünlü listesi |
 | `js/app.js` | Arayüz mantığı |
 
 > Astrolojik geleneklere dayanır ve eğlence amaçlıdır.

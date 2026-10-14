@@ -6,11 +6,15 @@
   <title>Burç Uyum Rehberi</title>
   <meta name="description" content="Doğum tarihi, saati, yeri ve cinsiyetine göre sana en uygun burçları sıralayan detaylı burç uyum uygulaması.">
   <link rel="stylesheet" href="css/style.css">
+  <script>
+    try { var t = localStorage.getItem('burc-uyum-tema'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
 </head>
 <body>
   <div class="stars" aria-hidden="true"></div>
 
   <header class="site-header">
+    <button class="theme-toggle" type="button" id="themeToggle" aria-label="Temayı değiştir">☀️</button>
     <div class="logo">✦ Burç Uyum Rehberi ✦</div>
     <p class="tagline">Doğum haritana göre sana en uygun burçları keşfet</p>
   </header>
@@ -93,6 +97,8 @@
   <script src="js/cities.js"></script>
   <script src="js/astro.js"></script>
   <script src="js/compat.js"></script>
+  <script src="js/horoscope.js"></script>
+  <script src="js/celebs.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

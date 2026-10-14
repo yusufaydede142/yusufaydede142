@@ -124,11 +124,14 @@
     const analysis = window.Compat.analyze(chart, input.gender, input.partner);
     const bal = window.Compat.balance(chart);
     const out = $('results');
-    out.innerHTML = renderHero(input, chart) + renderPlanets(chart) + renderBalance(bal) +
-      renderProfile(input, chart) + renderRankings(input, chart, analysis) + renderPartnerCard(input);
+    out.innerHTML = renderHero(input, chart) + renderDailyCard() + renderPlanets(chart) + renderBalance(bal) +
+      renderProfile(input, chart) + renderRankings(input, chart, analysis) + renderPartnerCard(input) + renderCelebCard(input);
     out.classList.remove('hidden');
     bindResults(input, chart, analysis);
     bindPartner(input, chart);
+    bindDaily(chart);
+    bindCelebs(input, chart, analysis);
+    bindShare('heroShare', () => shareTextForResults(input, chart, analysis));
     out.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -167,6 +170,7 @@
           <button class="btn ghost" type="button" id="btnEdit">✏️ Bilgileri düzenle</button>
           <button class="btn ghost" type="button" id="btnPrint">🖨️ Yazdır / PDF</button>
         </div>
+        ${shareBar('heroShare')}
       </div>`;
   }
 
@@ -269,8 +273,8 @@
       <h2>💞 Sana En Uygun ${genderPlural(pg)} Burçları</h2>
       <p class="muted">Sıralama; Güneş burcunun yanında Ay${chart.planets.asc ? ', Yükselen' : ''}, ${a.attractName} ve ${a.otherName} konumların hesaba katılarak kişiselleştirildi. Detaylı uyum raporu için bir burca dokun.</p>
       <div class="tabs" role="tablist">
-        <button class="btn ghost tab" type="button" role="tab" data-tab="love" aria-selected="true">💘 Aşk & İlişki Uyumu</button>
-        <button class="btn ghost tab" type="button" role="tab" data-tab="friend" aria-selected="false">🌟 Arkadaşlık Uyumu</button>
+        <button class="btn ghost tab rtab" type="button" role="tab" data-tab="love" aria-selected="true">💘 Aşk & İlişki Uyumu</button>
+        <button class="btn ghost tab rtab" type="button" role="tab" data-tab="friend" aria-selected="false">🌟 Arkadaşlık Uyumu</button>
       </div>
       <div data-panel="love">
         <div class="podium">${podium}</div>
@@ -380,19 +384,19 @@
   function bindResults(input, chart, a) {
     $('btnEdit').addEventListener('click', () => $('formCard').scrollIntoView({ behavior: 'smooth' }));
     $('btnPrint').addEventListener('click', () => {
-      document.querySelectorAll('.rank-item').forEach((d) => {
+      document.querySelectorAll('.rank-item[data-sign]').forEach((d) => {
         if (!d.querySelector('.detail').innerHTML) d.querySelector('.detail').innerHTML = renderDetail(input, chart, a, +d.dataset.sign, d.dataset.mode);
       });
       window.print();
     });
-    document.querySelectorAll('.rank-item').forEach((d) => {
+    document.querySelectorAll('.rank-item[data-sign]').forEach((d) => {
       d.addEventListener('toggle', () => {
         const box = d.querySelector('.detail');
         if (d.open && !box.innerHTML) box.innerHTML = renderDetail(input, chart, a, +d.dataset.sign, d.dataset.mode);
       });
     });
-    document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
-      document.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
+    document.querySelectorAll('.rtab').forEach((t) => t.addEventListener('click', () => {
+      document.querySelectorAll('.rtab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
       document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
     }));
   }
@@ -482,7 +486,8 @@
 
       const chartB = window.Astro.computeChart(pInput);
       const syn = window.Compat.synastry(chartA, chartB);
-      $('synResult').innerHTML = renderSynastry(input, chartA, pInput, chartB, syn);
+      $('synResult').innerHTML = renderSynastry(input, chartA, pInput, chartB, syn) + shareBar('synShare');
+      bindShare('synShare', () => shareTextForSynastry(input, chartA, pInput, chartB, syn));
       $('synResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
   }
@@ -568,6 +573,205 @@
       </div>`;
   }
 
+  /* ---------- Günlük / haftalık yorum ---------- */
+
+  const DAY_NAMES = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+  const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
+  const fmtDay = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]} ${DAY_NAMES[d.getDay()]}`;
+  const todayLocal = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
+
+  function renderDailyCard() {
+    return `<div class="card" id="dailyCard">
+      <h2>🔮 Sana Özel Burç Yorumu</h2>
+      <p class="muted">Yorumlar, gökyüzündeki gezegenlerin bugünkü gerçek konumları senin doğum haritanla karşılaştırılarak hazırlanır.</p>
+      <div class="tabs" role="tablist">
+        <button class="btn ghost tab htab" type="button" data-h="today" aria-selected="true">Bugün</button>
+        <button class="btn ghost tab htab" type="button" data-h="tomorrow" aria-selected="false">Yarın</button>
+        <button class="btn ghost tab htab" type="button" data-h="week" aria-selected="false">Bu Hafta</button>
+      </div>
+      <div id="horoContent"></div>
+    </div>`;
+  }
+
+  function scoreBars(scores) {
+    const L = { love: '💘 Aşk', work: '💼 İş & Para', mood: '😊 Ruh Hali' };
+    return Object.keys(L).map((k) => `<div class="bar-row"><span>${L[k]}</span><div class="bar"><i style="width:${scores[k]}%"></i></div><b>%${scores[k]}</b></div>`).join('');
+  }
+
+  function renderDay(d) {
+    const lvl = window.Compat.levelOf(d.overall);
+    const ms = SIGNS[d.moonSign];
+    return `<div class="horo-day">
+      <div class="horo-top"><div><b>${fmtDay(d.date)}</b><br><small class="muted">Ay bugün ${ms.symbol} ${ms.name} burcunda · ${d.house + 1}. evinde</small></div>
+        <div class="horo-score ${lvl.cls}">%${d.overall}</div></div>
+      <h3>🌙 Günün teması: ${d.houseInfo.theme}</h3>
+      <p>${d.houseInfo.text}</p>
+      ${d.mercuryRetro ? '<div class="note">☿ Merkür şu an geri hareket ediyor: yazışmalarda, imza ve alışverişlerde, teknolojide ekstra dikkatli ol; eski konular ve kişiler gündeme gelebilir.</div>' : ''}
+      ${d.aspects.length ? `<h3>✨ Gökyüzünden sana gelen etkiler</h3><ul class="aspect-list">${d.aspects.map((a) => `<li>${a.harm > 0 ? '✅' : '⚠️'} ${a.text}</li>`).join('')}</ul>` : '<p class="muted">Bugün haritanda belirgin bir gezegen etkisi yok; sakin ve dengeli bir gün.</p>'}
+      <h3>📊 Günün enerjisi</h3>
+      <div class="bars">${scoreBars(d.scores)}</div>
+      <div class="info-grid" style="grid-template-columns:repeat(3,minmax(0,1fr))">
+        <div class="info"><b>${d.lucky.number}</b>Şanslı sayı</div>
+        <div class="info"><b>${d.lucky.color}</b>Şanslı renk</div>
+        <div class="info"><b>${d.lucky.hour}</b>Şanslı saat</div>
+      </div>
+    </div>`;
+  }
+
+  function renderWeek(w) {
+    const rows = w.days.map((d) => {
+      const lvl = window.Compat.levelOf(d.overall);
+      return `<details class="rank-item week-day"><summary>
+        <span class="rank-no">${SIGNS[d.moonSign].symbol}</span>
+        <span><span class="rank-title">${fmtDay(d.date)}</span><br><span class="rank-sub">${d.houseInfo.theme}</span></span>
+        <span class="rank-score"><b class="${lvl.cls}">%${d.overall}</b><span class="expand-hint">Detay</span></span>
+      </summary><div class="detail">${renderDay(d)}</div></details>`;
+    }).join('');
+    const ev = w.events.length
+      ? `<h3>🪐 Bu haftanın gökyüzü olayları</h3><ul class="list-plus">${w.events.map((e) => `<li><b>${fmtDay(e.date)}:</b> ${e.text}</li>`).join('')}</ul>` : '';
+    return `<div class="info-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));margin:0 0 14px">
+        <div class="info"><b>${fmtDay(w.bestLove.date)}</b>💘 Aşk için en iyi gün</div>
+        <div class="info"><b>${fmtDay(w.bestWork.date)}</b>💼 İş için en iyi gün</div>
+        <div class="info"><b>${fmtDay(w.bestMood.date)}</b>😊 En keyifli gün</div>
+      </div>${ev}<h3>📅 Gün gün</h3>${rows}`;
+  }
+
+  function bindDaily(chart) {
+    const show = (mode) => {
+      const t = todayLocal();
+      let html;
+      if (mode === 'week') html = renderWeek(window.Horoscope.weekly(chart, t));
+      else html = renderDay(window.Horoscope.daily(chart, mode === 'tomorrow' ? new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1) : t));
+      $('horoContent').innerHTML = html;
+    };
+    document.querySelectorAll('.htab').forEach((b) => b.addEventListener('click', () => {
+      document.querySelectorAll('.htab').forEach((x) => x.setAttribute('aria-selected', String(x === b)));
+      show(b.dataset.h);
+    }));
+    show('today');
+  }
+
+  /* ---------- Paylaşım ---------- */
+
+  function shareBar(id) {
+    return `<div class="share-bar" id="${id}">
+      <button class="btn share wa" type="button" data-act="wa">🟢 WhatsApp'ta Paylaş</button>
+      <button class="btn ghost" type="button" data-act="copy">📋 Metni Kopyala</button>
+      ${navigator.share ? '<button class="btn ghost" type="button" data-act="native">📤 Diğer</button>' : ''}
+      <span class="share-msg muted" aria-live="polite"></span>
+    </div>`;
+  }
+
+  function bindShare(id, getText) {
+    const bar = $(id);
+    if (!bar) return;
+    const msg = bar.querySelector('.share-msg');
+    bar.addEventListener('click', (e) => {
+      const act = e.target.closest('button') && e.target.closest('button').dataset.act;
+      if (!act) return;
+      const text = getText();
+      if (act === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
+      if (act === 'native') navigator.share({ title: 'Burç Uyum Rehberi', text }).catch(() => {});
+      if (act === 'copy') {
+        const done = () => { msg.textContent = 'Kopyalandı ✔'; setTimeout(() => { msg.textContent = ''; }, 2500); };
+        if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+        else fallbackCopy(text, done);
+      }
+    });
+  }
+
+  function fallbackCopy(text, done) {
+    const ta = document.createElement('textarea');
+    ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); done(); } catch (e) { /* kopyalanamadı */ }
+    ta.remove();
+  }
+
+  function shareTextForResults(input, chart, a) {
+    const s = SIGNS[chart.planets.sun.sign];
+    const extra = [`Ay: ${signLabel(chart, 'moon')}`];
+    if (chart.planets.asc) extra.push(`Yükselen: ${SIGNS[chart.planets.asc.sign].name}`);
+    const top = a.ranking.slice(0, 3).map((r, i) => `${['🥇', '🥈', '🥉'][i]} ${SIGNS[r.sign].name} ${SIGNS[r.sign].symbol} – %${r.score}`).join('\n');
+    return `✦ Burç Uyum Rehberi ✦\n\n${input.name ? input.name + ': ' : ''}Ben bir ${s.name} ${genderWord(input.gender)}yim ${s.symbol} (${extra.join(', ')})\n\nBana en uygun ${genderPlural(input.partner).toLowerCase()} burçları:\n${top}\n\nSen de kendi burç uyumunu keşfet! 💫`;
+  }
+
+  function shareTextForSynastry(inA, A, inB, B, syn) {
+    const sa = SIGNS[A.planets.sun.sign], sb = SIGNS[B.planets.sun.sign];
+    const best = CATEGORIES.slice().sort((x, y) => syn.categories[y.key] - syn.categories[x.key]).slice(0, 3)
+      .map((c) => `${c.icon} ${c.label}: %${syn.categories[c.key]}`).join('\n');
+    return `✦ Burç Uyum Rehberi ✦\n\n${inA.name || 'Ben'} ${sa.symbol} ${sa.name} & ${inB.name || 'O'} ${sb.symbol} ${sb.name}\n💞 Harita uyumumuz: %${syn.score} – ${syn.level.label}\n\nEn güçlü alanlarımız:\n${best}\n\nSen de kendi uyumunu hesapla! 💫`;
+  }
+
+  /* ---------- Ünlülerle uyum ---------- */
+
+  function renderCelebCard(input) {
+    return `<div class="card" id="celebCard">
+      <h2>⭐ Ünlülerle Uyumun</h2>
+      <p class="muted">Ünlülerin Güneş burçlarıyla senin kişisel uyum puanın. Bir ünlüye dokunarak aranızdaki uyumun nedenini gör.</p>
+      <div class="grid three celeb-filters">
+        <label class="field"><span>Ara</span><input type="search" id="celebSearch" placeholder="Örn. Tarkan"></label>
+        <label class="field"><span>Cinsiyet</span><select id="celebGender">
+          <option value="${input.partner}">${genderPlural(input.partner)}</option>
+          <option value="${input.partner === 'erkek' ? 'kadin' : 'erkek'}">${genderPlural(input.partner === 'erkek' ? 'kadin' : 'erkek')}</option>
+          <option value="">Hepsi</option></select></label>
+        <label class="field"><span>Köken</span><select id="celebOrigin">
+          <option value="">Hepsi</option><option value="tr">Türkiye</option><option value="w">Dünya</option></select></label>
+      </div>
+      <div id="celebList" class="celeb-list"></div>
+      <button class="btn ghost hidden" type="button" id="celebMore" style="width:100%;margin-top:10px">Daha fazla göster</button>
+    </div>`;
+  }
+
+  function bindCelebs(input, chart, a) {
+    const me = SIGNS[chart.planets.sun.sign];
+    let limit = 12;
+    const draw = () => {
+      const q = $('celebSearch').value.trim().toLocaleLowerCase('tr');
+      const g = $('celebGender').value, o = $('celebOrigin').value;
+      const list = window.Celebs
+        .filter((c) => (!g || c.gender === g) && (!o || c.origin === o) && (!q || c.name.toLocaleLowerCase('tr').includes(q)))
+        .map((c) => ({ c, r: a.results[c.sign] }))
+        .sort((x, y) => y.r.score - x.r.score || x.c.name.localeCompare(y.c.name, 'tr'));
+      $('celebList').innerHTML = list.length ? list.slice(0, limit).map(({ c, r }) => {
+        const s = SIGNS[c.sign];
+        const [yy, mm, dd] = c.date.split('-').map(Number);
+        return `<details class="rank-item celeb"><summary>
+          <span class="rank-no">${c.origin === 'tr' ? '🇹🇷' : '🌍'}</span>
+          <span class="rank-sym">${s.symbol}</span>
+          <span><span class="rank-title">${esc(c.name)}</span><br><span class="rank-sub">${c.job} · ${s.name} · ${dd} ${MONTHS[mm - 1]} ${yy}</span></span>
+          <span class="rank-score"><b class="${r.level.cls}">%${r.score}</b><span class="lvl ${r.level.cls}">${r.level.label}</span></span>
+        </summary><div class="detail">
+          <p><span class="badge">${r.aspect.name}</span><span class="badge">${me.element} + ${s.element}</span></p>
+          <p>${r.aspect.text}</p><p>${r.elementText.text}</p>
+          <p><b>${s.name} ${genderWord(c.gender)}:</b> ${c.gender === 'erkek' ? s.male : s.female}</p>
+        </div></details>`;
+      }).join('') : '<p class="muted">Aramana uygun ünlü bulunamadı.</p>';
+      $('celebMore').classList.toggle('hidden', list.length <= limit);
+    };
+    ['celebSearch', 'celebGender', 'celebOrigin'].forEach((id) => $(id).addEventListener('input', () => { limit = 12; draw(); }));
+    $('celebMore').addEventListener('click', () => { limit += 12; draw(); });
+    draw();
+  }
+
+  /* ---------- Tema ---------- */
+
+  function bindTheme() {
+    const btn = $('themeToggle');
+    const apply = (t) => {
+      document.documentElement.setAttribute('data-theme', t);
+      btn.textContent = t === 'light' ? '🌙' : '☀️';
+      btn.setAttribute('aria-label', t === 'light' ? 'Koyu temaya geç' : 'Açık temaya geç');
+    };
+    apply(document.documentElement.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    btn.addEventListener('click', () => {
+      const t = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+      apply(t);
+      try { localStorage.setItem('burc-uyum-tema', t); } catch (e) { /* depolama kullanılamıyor olabilir */ }
+    });
+  }
+
+  bindTheme();
   fillPlaces();
   bindForm();
   restoreInput();
