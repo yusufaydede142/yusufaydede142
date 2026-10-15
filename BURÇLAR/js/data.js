@@ -251,7 +251,7 @@
       plus: ['Yoğun tutku ve çekim', 'Birbirinden öğrenme fırsatı', 'Duygusal yoğunluk'],
       minus: ['İletişim tarzları çok farklı', 'Kırgınlıklar birikebilir', 'Özgürlük ile yakınlık ihtiyacı çatışabilir']
     },
-    'Hava-Toprak': {
+    'Toprak-Hava': {
       mods: [-4, 1, -5, -3, -1, -2, -2, -1],
       text: 'Hava fikirler dünyasında, toprak somut gerçeklikte yaşar. Biriniz teorize ederken diğeri uygulamaya bakar. Saygı ve sabır olduğunda bu fark büyük bir tamamlayıcılığa dönüşebilir.',
       plus: ['Fikir ve uygulamanın birleşimi', 'Birbirine yeni bakış açısı kazandırma', 'Mantıklı karar alma'],
