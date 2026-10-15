@@ -6,6 +6,12 @@
   <title>Burç Uyumu</title>
   <meta name="description" content="Doğum bilgilerine göre sana en uygun burçları sıralar ve aranızdaki uyumu açıklar.">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#3b3a8f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Burç Uyumu">
   <script>
     try { var t = localStorage.getItem('burc-uyum-tema'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   </script>
@@ -20,6 +26,7 @@
 
   <main class="wrap">
     <section class="panel" id="formCard">
+      <p class="note hidden" id="inviteNote"></p>
       <h1>Doğum bilgilerin</h1>
       <p class="muted">Doğum saatin ve yerin ne kadar doğruysa sonuç o kadar sana özel olur.</p>
 
@@ -97,5 +104,10 @@
   <script src="js/horoscope.js"></script>
   <script src="js/celebs.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  </script>
 </body>
 </html>

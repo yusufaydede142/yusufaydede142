@@ -133,5 +133,96 @@
     return { days, events, bestLove: best('love'), bestWork: best('work'), bestMood: best('mood') };
   }
 
-  global.Horoscope = { daily, weekly, HOUSES };
+
+  /* ---------- Gökyüzü takvimi ---------- */
+
+  const norm = (x) => ((x % 360) + 360) % 360;
+  const PHASES = [
+    { max: 10, name: 'Yeni ay' }, { max: 80, name: 'Hilal' }, { max: 100, name: 'İlk dördün' },
+    { max: 170, name: 'Şişkin ay' }, { max: 190, name: 'Dolunay' }, { max: 260, name: 'Şişkin ay (küçülen)' },
+    { max: 280, name: 'Son dördün' }, { max: 350, name: 'Hilal (küçülen)' }, { max: 361, name: 'Yeni ay' }
+  ];
+
+  // Belirli bir yerel tarihin başından itibaren h saat sonrasındaki konumlar
+  function posAt(base, h) {
+    return A.positionsAtUT(base.getFullYear(), base.getMonth() + 1, base.getDate(), h + base.getTimezoneOffset() / 60);
+  }
+  const dateAt = (base, h) => new Date(base.getTime() + h * 3600 * 1000);
+
+  function moonPhase(date) {
+    const base = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const p = posAt(base, date.getHours() + date.getMinutes() / 60);
+    const elong = norm(p.moon - p.sun);
+    const illum = Math.round(((1 - Math.cos(elong * Math.PI / 180)) / 2) * 100);
+    return { elong, illum, name: PHASES.find((x) => elong < x.max).name, sign: A.signIndex(p.moon) };
+  }
+
+  // f(h) işaret değiştirdiğinde ikiye bölme ile anı bul
+  function refine(f, lo, hi) {
+    let flo = f(lo);
+    for (let i = 0; i < 20; i++) {
+      const mid = (lo + hi) / 2, fm = f(mid);
+      if ((fm > 0) === (flo > 0)) { lo = mid; flo = fm; } else hi = mid;
+    }
+    return (lo + hi) / 2;
+  }
+  const wrap = (x) => { const v = norm(x); return v > 180 ? v - 360 : v; };
+
+  function skyCalendar(chart, start, days) {
+    const base = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const events = [];
+    const ref = chart.planets.asc ? chart.planets.asc.sign : chart.planets.sun.sign;
+    const step = 6; // saat
+    let prev = posAt(base, 0);
+    let prevMerc = posAt(base, -24).mercury;
+    for (let h = step; h <= days * 24; h += step) {
+      const cur = posAt(base, h);
+      // Yeni ay ve dolunay
+      [[0, 'new'], [180, 'full']].forEach(([target, kind]) => {
+        const f = (x) => wrap(norm(posAt(base, x).moon - posAt(base, x).sun) - target);
+        const a = wrap(norm(prev.moon - prev.sun) - target), b = wrap(norm(cur.moon - cur.sun) - target);
+        if (a < 0 && b >= 0) {
+          const t = refine(f, h - step, h);
+          const p = posAt(base, t);
+          const sign = A.signIndex(p.moon);
+          const house = (sign - ref + 12) % 12;
+          events.push({
+            date: dateAt(base, t), kind,
+            title: kind === 'new' ? `Yeni ay, ${SIGNS[sign].name} burcunda` : `Dolunay, ${SIGNS[sign].name} burcunda`,
+            text: kind === 'new'
+              ? `Senin ${house + 1}. evinde: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda yeni bir başlangıç için uygun bir zaman.`
+              : `Senin ${house + 1}. evinde: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda bir şeyler netleşebilir ya da tamamlanabilir.`
+          });
+        }
+      });
+      // Burç geçişleri
+      ['sun', 'mercury', 'venus', 'mars'].forEach((k) => {
+        const s1 = A.signIndex(prev[k]), s2 = A.signIndex(cur[k]);
+        if (s1 !== s2) {
+          const boundary = (s2 === (s1 + 1) % 12 ? s2 : s1) * 30;
+          const t = refine((x) => wrap(posAt(base, x)[k] - boundary), h - step, h);
+          events.push({ date: dateAt(base, t), kind: 'ingress', title: `${TRANSIT[k].name} ${SIGNS[s2].name} burcuna geçiyor`, text: `${TRANSIT[k].area[0].toLocaleUpperCase('tr') + TRANSIT[k].area.slice(1)} konularında yeni bir dönem.` });
+        }
+      });
+      // Merkür geri / düz
+      if (h % 24 === 0) {
+        const d1 = wrap(prev.mercury - prevMerc), d2 = wrap(cur.mercury - prev.mercury);
+        if ((d1 >= 0) !== (d2 >= 0)) {
+          // Hızın işaret değiştirdiği anı bul
+          const speed = (x) => wrap(posAt(base, x + 1).mercury - posAt(base, x).mercury);
+          const t = refine(speed, h - 48, h);
+          events.push(d2 < 0
+            ? { date: dateAt(base, t), kind: 'retro', title: 'Merkür geri harekete başlıyor', text: 'Yaklaşık üç hafta boyunca yazışmalarda, imzalarda ve teknolojide dikkatli ol.' }
+            : { date: dateAt(base, t), kind: 'retro', title: 'Merkür düz harekete dönüyor', text: 'İletişimdeki aksaklıklar azalmaya başlar.' });
+        }
+        prevMerc = prev.mercury;
+        prev = cur;
+      } else {
+        prev = cur;
+      }
+    }
+    return events.sort((a, b) => a.date - b.date);
+  }
+
+  global.Horoscope = { daily, weekly, HOUSES, moonPhase, skyCalendar };
 })(typeof window !== 'undefined' ? window : globalThis);
