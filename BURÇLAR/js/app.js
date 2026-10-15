@@ -109,7 +109,7 @@
       $('formError').textContent = b.error || '';
       if (b.error) return;
       const input = Object.assign(b, {
-        name: $('name').value.trim(),
+        name: $('name').value.replace(/[<>]/g, '').trim(),
         gender: document.querySelector('input[name="gender"]:checked').value,
         partner: document.querySelector('input[name="partner"]:checked').value,
         manualOffset: $('manualOffset').value
@@ -118,7 +118,8 @@
         name: input.name, gender: input.gender, partner: input.partner,
         date: $('birthDate').value, time: $('birthTime').value, unknown: !input.timeKnown,
         place: $('birthPlace').value, lat: $('customLat').value, lon: $('customLon').value, tz: $('customTz').value,
-        offset: $('manualOffset').value
+        offset: $('manualOffset').value,
+        shown: true
       });
       run(input);
     });
@@ -135,6 +136,7 @@
     $('customPlace').classList.toggle('hidden', s.place !== 'custom');
     $('customLat').value = s.lat || ''; $('customLon').value = s.lon || ''; $('customTz').value = s.tz || '';
     $('manualOffset').value = s.offset || '';
+    if (s.shown && $('birthDate').value) $('birthForm').requestSubmit();
   }
 
   /* ---------- Sonuç ekranı ---------- */
@@ -161,6 +163,8 @@
     out.classList.remove('hidden');
 
     $('editBtn').addEventListener('click', () => {
+      const saved = store.get(STORAGE_KEY);
+      if (saved) store.set(STORAGE_KEY, Object.assign(saved, { shown: false }));
       out.classList.add('hidden');
       $('formCard').classList.remove('hidden');
       $('formCard').scrollIntoView({ behavior: 'smooth' });
@@ -193,7 +197,7 @@
       <h1><span class="glyph">${sun.symbol}</span>${input.name ? esc(input.name) + ', ' : ''}${sun.name} ${input.gender === 'erkek' ? 'erkeğisin' : 'kadınısın'}</h1>
       <p class="muted">${parts.join(' · ')}<br>${date}, ${time}, ${esc(input.place.name)}</p>
       ${notes}
-      <button class="link-btn" type="button" id="editBtn">Bilgileri değiştir</button>
+      <button class="btn quiet" type="button" id="editBtn">Bilgileri değiştir</button>
     </div>`;
   }
 
@@ -309,7 +313,7 @@
 
     const bal = window.Compat.balance(chart);
     const elMeters = Object.entries(bal.elements).map(([k, v]) => `
-      <div class="meter"><div class="meter-head"><span>${k}</span></div><div class="track"><i style="width:${v}%"></i></div></div>`).join('');
+      <div class="meter"><div class="meter-head"><span>${k}</span><b>%${v}</b></div><div class="track"><i style="width:${v}%"></i></div></div>`).join('');
     const dom = Object.entries(bal.elements).sort((a, b) => b[1] - a[1])[0][0];
     const domText = { 'Ateş': 'hareketli ve cesur', 'Toprak': 'pratik ve sağlam', 'Hava': 'sosyal ve meraklı', 'Su': 'duygusal ve sezgisel' }[dom];
 
@@ -367,7 +371,12 @@
     const rows = w.days.map((d) => `<li><b>${fmtDay(d.date)}</b><span class="row-sub">${d.houseInfo.theme}</span></li>`).join('');
     const ev = w.events.length
       ? `<h3>Bu hafta gökyüzünde</h3><ul class="plain">${w.events.map((e) => `<li><b>${fmtDay(e.date)}:</b> ${e.text}</li>`).join('')}</ul>` : '';
+    const first = w.days[0].date, last = w.days[w.days.length - 1].date;
+    const range = first.getMonth() === last.getMonth()
+      ? `${first.getDate()}–${last.getDate()} ${MONTHS[last.getMonth()]}`
+      : `${first.getDate()} ${MONTHS[first.getMonth()]} – ${last.getDate()} ${MONTHS[last.getMonth()]}`;
     return `<div class="panel">
+        <h2>${range}</h2>
         <table class="table"><tbody>
           <tr><th>Aşk için</th><td>${fmtDay(w.bestLove.date)}</td></tr>
           <tr><th>İş için</th><td>${fmtDay(w.bestWork.date)}</td></tr>
@@ -449,14 +458,14 @@
       const b = readBirth('p');
       $('pError').textContent = b.error || '';
       if (b.error) return;
-      const pInput = Object.assign(b, { name: $('pName').value.trim(), gender: document.querySelector('input[name="pGender"]:checked').value });
+      const pInput = Object.assign(b, { name: $('pName').value.replace(/[<>]/g, '').trim(), gender: document.querySelector('input[name="pGender"]:checked').value });
       store.set(PARTNER_KEY, {
         name: pInput.name, gender: pInput.gender, date: $('pBirthDate').value, time: $('pBirthTime').value, unknown: !pInput.timeKnown,
         place: $('pBirthPlace').value, lat: $('pCustomLat').value, lon: $('pCustomLon').value, tz: $('pCustomTz').value
       });
       const chartB = window.Astro.computeChart(pInput);
       const syn = window.Compat.synastry(ctx.chart, chartB);
-      $('synResult').innerHTML = renderSynastry(ctx.input, ctx.chart, pInput, chartB, syn) + shareBar('shareSyn');
+      $('synResult').innerHTML = renderSynastry(ctx.input, ctx.chart, pInput, chartB, syn);
       bindShare('shareSyn', () => shareTextForSynastry(ctx.input, ctx.chart, pInput, chartB, syn));
       $('synResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
     });
@@ -497,6 +506,7 @@
 
       <h3>Öneri</h3>
       <p>${sp.aspect.advice} ${adviceForElements(sa.element, sb.element)}</p>
+      ${shareBar('shareSyn')}
     </div>`;
   }
 
