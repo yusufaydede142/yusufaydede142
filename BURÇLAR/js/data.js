@@ -4,7 +4,7 @@
 
   const SIGNS = [
     {
-      name: 'Koç', symbol: '♈', dates: '21 Mart – 20 Nisan', element: 'Ateş', modality: 'Öncü', polarity: 'Eril',
+      name: 'Koç', symbol: '♈\uFE0E', dates: '21 Mart – 20 Nisan', element: 'Ateş', modality: 'Öncü', polarity: 'Eril',
       ruler: 'Mars', color: 'Kırmızı', stone: 'Elmas', day: 'Salı',
       keywords: ['cesur', 'girişimci', 'enerjik', 'dürüst', 'sabırsız'],
       summary: 'Zodyak\'ın ilk burcu olan Koç, yeni başlangıçların, cesaretin ve saf yaşam enerjisinin temsilcisidir. Düşündüğünü hemen yapar, rekabetten beslenir ve hayata öncü olarak katılmak ister. Dolaysız, samimi ve içi dışı birdir; öfkesi çabuk parlar ama çabuk da söner.',
@@ -18,7 +18,7 @@
       needs: 'Heyecan, özgürlük, takdir ve dürüstlük.'
     },
     {
-      name: 'Boğa', symbol: '♉', dates: '21 Nisan – 20 Mayıs', element: 'Toprak', modality: 'Sabit', polarity: 'Dişil',
+      name: 'Boğa', symbol: '♉\uFE0E', dates: '21 Nisan – 20 Mayıs', element: 'Toprak', modality: 'Sabit', polarity: 'Dişil',
       ruler: 'Venüs', color: 'Yeşil', stone: 'Zümrüt', day: 'Cuma',
       keywords: ['sadık', 'sabırlı', 'güvenilir', 'duyusal', 'inatçı'],
       summary: 'Boğa, istikrarın, güvenin ve dünyevi zevklerin burcudur. Venüs\'ün yönettiği bu burç güzelliği, konforu, iyi yemeği ve kalıcı değerleri sever. Yavaş ama emin adımlarla ilerler; bir kez bağlandığında kolay kolay vazgeçmez.',
@@ -32,13 +32,13 @@
       needs: 'Güven, istikrar, fiziksel yakınlık ve sadakat.'
     },
     {
-      name: 'İkizler', symbol: '♊', dates: '21 Mayıs – 21 Haziran', element: 'Hava', modality: 'Değişken', polarity: 'Eril',
+      name: 'İkizler', symbol: '♊\uFE0E', dates: '21 Mayıs – 21 Haziran', element: 'Hava', modality: 'Değişken', polarity: 'Eril',
       ruler: 'Merkür', color: 'Sarı', stone: 'Akik', day: 'Çarşamba',
       keywords: ['meraklı', 'konuşkan', 'esprili', 'uyumlu', 'kararsız'],
       summary: 'İkizler, zihnin, iletişimin ve merakın burcudur. Merkür\'ün yönettiği bu burç hızlı düşünür, çok konuşur ve her şeyi öğrenmek ister. Sosyal, esprili ve çok yönlüdür; aynı anda birçok ilgi alanını yürütebilir.',
       strengths: ['Zekâ ve hazırcevaplık', 'Uyum sağlama yeteneği', 'Eğlenceli ve sosyal yapı', 'Açık fikirlilik'],
       weaknesses: ['Kararsızlık', 'Çabuk sıkılma', 'Yüzeysellik', 'Duygularını zihinselleştirme'],
-      male: 'İkizler erkeği esprili, meraklı ve sohbetiyle büyüleyen biridir. Zihnini uyaran, onunla saatlerce konuşabilen bir partner arar. Özgürlüğüne düşkündür; fazla kıskançlık ve kısıtlama onu uzaklaştırır. Duygularını sözcüklerle ifade eder, mesajlaşmayı ve fikir alışverişini sever.',
+      male: 'İkizler erkeği esprili, meraklı ve sohbeti keyifli biridir. Zihnini uyaran, onunla saatlerce konuşabilen bir partner arar. Özgürlüğüne düşkündür; fazla kıskançlık ve kısıtlama onu uzaklaştırır. Duygularını sözcüklerle ifade eder, mesajlaşmayı ve fikir alışverişini sever.',
       female: 'İkizler kadını canlı, sosyal ve çok yönlü biridir. Bir gün maceracı, ertesi gün düşünceli olabilir. Zekâsına hitap eden, onu güldüren ve değişimine ayak uydurabilen birine aşık olur. Monotonluk onu boğar; ilişkide sürekli yeni bir şey keşfetmek ister.',
       inLove: 'Aşk onun için önce zihinsel bir çekimdir. Konuşamadığı biriyle uzun süre birlikte olamaz.',
       winMale: 'İlginç sohbetler aç, mizahını göster, onu entelektüel olarak şaşırt. Sıkıcı rutinlerden ve aşırı sahiplenmeden kaçın.',
@@ -46,7 +46,7 @@
       needs: 'Zihinsel uyarım, çeşitlilik, özgürlük ve iyi bir sohbet.'
     },
     {
-      name: 'Yengeç', symbol: '♋', dates: '22 Haziran – 22 Temmuz', element: 'Su', modality: 'Öncü', polarity: 'Dişil',
+      name: 'Yengeç', symbol: '♋\uFE0E', dates: '22 Haziran – 22 Temmuz', element: 'Su', modality: 'Öncü', polarity: 'Dişil',
       ruler: 'Ay', color: 'Gümüş / Beyaz', stone: 'İnci', day: 'Pazartesi',
       keywords: ['şefkatli', 'koruyucu', 'sezgisel', 'aile odaklı', 'alıngan'],
       summary: 'Yengeç, duyguların, yuvanın ve aidiyetin burcudur. Ay\'ın yönettiği bu burç derin hisseder, sevdiklerini korur ve geçmişe, aileye, anılara büyük değer verir. Dışarıdan sert bir kabuk gösterse de içi son derece yumuşaktır.',
@@ -60,7 +60,7 @@
       needs: 'Duygusal güvenlik, aidiyet, şefkat ve sadakat.'
     },
     {
-      name: 'Aslan', symbol: '♌', dates: '23 Temmuz – 22 Ağustos', element: 'Ateş', modality: 'Sabit', polarity: 'Eril',
+      name: 'Aslan', symbol: '♌\uFE0E', dates: '23 Temmuz – 22 Ağustos', element: 'Ateş', modality: 'Sabit', polarity: 'Eril',
       ruler: 'Güneş', color: 'Altın / Turuncu', stone: 'Yakut', day: 'Pazar',
       keywords: ['karizmatik', 'cömert', 'yaratıcı', 'gururlu', 'sadık'],
       summary: 'Aslan, kalbin, yaratıcılığın ve kendini ifade etmenin burcudur. Güneş\'in yönettiği bu burç doğal bir karizmaya sahiptir; girdiği ortamı aydınlatır. Cömert, sıcak ve sadıktır; takdir edilmek ve sevildiğini hissetmek ister.',
@@ -74,7 +74,7 @@
       needs: 'Takdir, hayranlık, sadakat ve romantizm.'
     },
     {
-      name: 'Başak', symbol: '♍', dates: '23 Ağustos – 22 Eylül', element: 'Toprak', modality: 'Değişken', polarity: 'Dişil',
+      name: 'Başak', symbol: '♍\uFE0E', dates: '23 Ağustos – 22 Eylül', element: 'Toprak', modality: 'Değişken', polarity: 'Dişil',
       ruler: 'Merkür', color: 'Lacivert / Bej', stone: 'Safir', day: 'Çarşamba',
       keywords: ['titiz', 'analitik', 'yardımsever', 'mütevazı', 'eleştirel'],
       summary: 'Başak, hizmetin, düzenin ve mükemmelliğin burcudur. Merkür\'ün toprak yüzünü temsil eder; detaycı, analitik ve pratik düşünür. Sevgisini sözlerden çok emekle, yardımla ve özenle gösterir.',
@@ -88,7 +88,7 @@
       needs: 'Güven, düzen, takdir edilmek ve zihinsel uyum.'
     },
     {
-      name: 'Terazi', symbol: '♎', dates: '23 Eylül – 22 Ekim', element: 'Hava', modality: 'Öncü', polarity: 'Eril',
+      name: 'Terazi', symbol: '♎\uFE0E', dates: '23 Eylül – 22 Ekim', element: 'Hava', modality: 'Öncü', polarity: 'Eril',
       ruler: 'Venüs', color: 'Pembe / Açık Mavi', stone: 'Opal', day: 'Cuma',
       keywords: ['uyumlu', 'zarif', 'adil', 'romantik', 'kararsız'],
       summary: 'Terazi, ilişkilerin, dengenin ve estetiğin burcudur. Venüs\'ün hava yüzünü temsil eder; zarif, diplomatik ve sosyaldir. Hayatı bir partnerle paylaşmak onun için doğaldır; uyum ve adalet en temel değerleridir.',
@@ -102,7 +102,7 @@
       needs: 'Uyum, ortaklık, nezaket ve güzellik.'
     },
     {
-      name: 'Akrep', symbol: '♏', dates: '23 Ekim – 21 Kasım', element: 'Su', modality: 'Sabit', polarity: 'Dişil',
+      name: 'Akrep', symbol: '♏\uFE0E', dates: '23 Ekim – 21 Kasım', element: 'Su', modality: 'Sabit', polarity: 'Dişil',
       ruler: 'Plüton / Mars', color: 'Bordo / Siyah', stone: 'Topaz', day: 'Salı',
       keywords: ['tutkulu', 'derin', 'gizemli', 'kararlı', 'kıskanç'],
       summary: 'Akrep, dönüşümün, tutkunun ve derinliğin burcudur. Hiçbir şeyi yarım yaşamaz; ya hep ya hiç der. Güçlü sezgileri vardır, insanların içini okur. Güveni kazanmak zordur ama kazanıldığında sadakati sarsılmazdır.',
@@ -116,7 +116,7 @@
       needs: 'Güven, derinlik, tutku ve sadakat.'
     },
     {
-      name: 'Yay', symbol: '♐', dates: '22 Kasım – 21 Aralık', element: 'Ateş', modality: 'Değişken', polarity: 'Eril',
+      name: 'Yay', symbol: '♐\uFE0E', dates: '22 Kasım – 21 Aralık', element: 'Ateş', modality: 'Değişken', polarity: 'Eril',
       ruler: 'Jüpiter', color: 'Mor', stone: 'Turkuaz', day: 'Perşembe',
       keywords: ['özgür', 'iyimser', 'maceracı', 'filozof', 'patavatsız'],
       summary: 'Yay, özgürlüğün, keşfin ve anlam arayışının burcudur. Jüpiter\'in yönettiği bu burç iyimser, cömert ve maceracıdır. Seyahat etmeyi, öğrenmeyi, yeni kültürleri tanımayı sever. Dürüstlüğü bazen patavatsızlığa varır.',
@@ -130,7 +130,7 @@
       needs: 'Özgürlük, macera, dürüstlük ve anlam.'
     },
     {
-      name: 'Oğlak', symbol: '♑', dates: '22 Aralık – 19 Ocak', element: 'Toprak', modality: 'Öncü', polarity: 'Dişil',
+      name: 'Oğlak', symbol: '♑\uFE0E', dates: '22 Aralık – 19 Ocak', element: 'Toprak', modality: 'Öncü', polarity: 'Dişil',
       ruler: 'Satürn', color: 'Kahverengi / Antrasit', stone: 'Oniks', day: 'Cumartesi',
       keywords: ['hırslı', 'disiplinli', 'sorumlu', 'sabırlı', 'mesafeli'],
       summary: 'Oğlak, sorumluluğun, başarının ve kalıcı yapıların burcudur. Satürn\'ün yönettiği bu burç disiplinli, sabırlı ve hedef odaklıdır. Hayatı ciddiye alır, uzun vadeli düşünür. Zamanla yumuşar; yaşlandıkça gençleşen burç olarak bilinir.',
@@ -144,7 +144,7 @@
       needs: 'Saygı, güvenilirlik, ortak hedefler ve istikrar.'
     },
     {
-      name: 'Kova', symbol: '♒', dates: '20 Ocak – 18 Şubat', element: 'Hava', modality: 'Sabit', polarity: 'Eril',
+      name: 'Kova', symbol: '♒\uFE0E', dates: '20 Ocak – 18 Şubat', element: 'Hava', modality: 'Sabit', polarity: 'Eril',
       ruler: 'Uranüs / Satürn', color: 'Turkuaz / Elektrik Mavisi', stone: 'Ametist', day: 'Cumartesi',
       keywords: ['özgün', 'bağımsız', 'vizyoner', 'insancıl', 'mesafeli'],
       summary: 'Kova, özgünlüğün, özgürlüğün ve geleceğin burcudur. Kalıpların dışında düşünür, yenilikleri sever ve insanlığın iyiliği için idealler taşır. Arkadaşlık onun için kutsaldır; en iyi ilişkileri dostluk temeli üzerine kurulur.',
@@ -158,7 +158,7 @@
       needs: 'Özgürlük, dostluk, zihinsel uyum ve özgünlük.'
     },
     {
-      name: 'Balık', symbol: '♓', dates: '19 Şubat – 20 Mart', element: 'Su', modality: 'Değişken', polarity: 'Dişil',
+      name: 'Balık', symbol: '♓\uFE0E', dates: '19 Şubat – 20 Mart', element: 'Su', modality: 'Değişken', polarity: 'Dişil',
       ruler: 'Neptün / Jüpiter', color: 'Deniz Yeşili / Lila', stone: 'Akuamarin', day: 'Perşembe',
       keywords: ['romantik', 'empatik', 'hayalperest', 'sanatsal', 'fedakâr'],
       summary: 'Balık, zodyak\'ın son burcu olarak tüm burçların izlerini taşır. Empatik, sezgisel ve romantiktir; başkalarının duygularını kendi duyguları gibi hisseder. Sanata, müziğe ve maneviyata yatkındır. Gerçeklikten kaçma eğilimi en büyük sınavıdır.',
@@ -205,7 +205,7 @@
   const ELEMENT_PAIRS = {
     'Ateş-Ateş': {
       mods: [4, 3, -5, 8, -4, 2, -4, 6],
-      text: 'İki ateş burcu bir araya geldiğinde ortaya çıkan enerji göz kamaştırıcıdır. Birbirinizin cesaretini, tutkusunu ve hayata olan heyecanını anında anlarsınız. Birlikte hareket etmek, risk almak ve eğlenmek çok doğal gelir.',
+      text: 'İki ateş burcu olarak ikiniz de enerjik ve heveslisiniz. Birbirinizin cesaretini ve heyecanını hemen anlarsınız. Birlikte bir şeyler yapmak, risk almak ve eğlenmek size kolay gelir.',
       plus: ['Yüksek enerji ve ortak heyecan', 'Güçlü fiziksel çekim', 'Birbirini motive etme'],
       minus: ['İki güçlü ego çatışabilir', 'Duygusal derinlik ihmal edilebilir', 'Kavgalar hızla alevlenebilir']
     },
@@ -223,13 +223,13 @@
     },
     'Su-Su': {
       mods: [5, -2, 9, 5, 3, 2, 3, 0],
-      text: 'İki su burcu birbirini kelimelere gerek kalmadan anlar. Sezgisel, derin ve şefkatli bir bağ kurarsınız. Duygusal dünyanız birbirine akar; bu ilişki ruh eşliğine en yakın deneyimlerden biridir.',
+      text: 'İki su burcu birbirini çoğu zaman söze gerek kalmadan anlar. Aranızda derin ve şefkatli bir bağ kurulur.',
       plus: ['Derin duygusal anlayış', 'Sezgisel iletişim', 'Şefkat ve romantizm'],
       minus: ['Duygusal dalgalanmalar birbirini besleyebilir', 'Sorunlar konuşulmadan geçiştirilebilir', 'Gerçekçi kararlar zorlaşabilir']
     },
     'Ateş-Hava': {
       mods: [3, 6, -4, 5, -3, 2, -2, 6],
-      text: 'Hava ateşi besler: biriniz fikir üretir, diğeri onu harekete geçirir. Bu, zodyak\'ın en canlı ve eğlenceli kombinasyonlarından biridir. Birlikte sıkılmanız neredeyse imkânsızdır.',
+      text: 'Hava ateşi besler: biriniz fikir üretir, diğeri onu hayata geçirir. Birlikteyken pek sıkılmazsınız.',
       plus: ['Heyecan verici ve dinamik ilişki', 'Zihinsel ve fiziksel uyum', 'Ortak macera ve sosyal yaşam'],
       minus: ['Duygusal ihtiyaçlar gözden kaçabilir', 'Kararlılık ve süreklilik sınanabilir', 'Tartışmalar alevlenebilir']
     },
@@ -247,7 +247,7 @@
     },
     'Ateş-Su': {
       mods: [-2, -4, 1, 6, -4, -4, -4, -3],
-      text: 'Ateş ve su buhar oluşturur: yoğun, tutkulu ama zaman zaman yakıcı. Aranızdaki çekim güçlüdür, fakat ateşin doğrudanlığı suyun hassasiyetini incitebilir; suyun duygusallığı ise ateşin hevesini söndürebilir.',
+      text: 'Ateş ve su bir araya gelince ilişki yoğun ve tutkulu olur, ama zaman zaman yakar da. Aranızdaki çekim güçlüdür, fakat ateşin doğrudanlığı suyun hassasiyetini incitebilir; suyun duygusallığı ise ateşin hevesini söndürebilir.',
       plus: ['Yoğun tutku ve çekim', 'Birbirinden öğrenme fırsatı', 'Duygusal yoğunluk'],
       minus: ['İletişim tarzları çok farklı', 'Kırgınlıklar birikebilir', 'Özgürlük ile yakınlık ihtiyacı çatışabilir']
     },
@@ -269,37 +269,37 @@
   const ASPECTS = [
     {
       name: 'Aynı burç (Kavuşum)', mods: [0, 3, 2, -2, 2, 5, 0, 4],
-      text: 'Aynı burçtan olduğunuz için birbirinize ayna tutarsınız. Değerleriniz, tepkileriniz ve ihtiyaçlarınız çok benzer; anlaşmak kolaydır. Ancak aynı zayıflıkları da paylaştığınız için kör noktalarınızı birbirinize gösteremeyebilirsiniz.',
+      text: 'Aynı burçtansınız. Değerleriniz ve tepkileriniz çok benzer, anlaşmak kolay. Ama aynı zayıflıkları da paylaştığınız için birbirinizin kör noktalarını göremeyebilirsiniz.',
       advice: 'Benzerliklerinizin rahatlığını yaşarken ilişkiye dışarıdan yeni deneyimler katmayı ihmal etmeyin.'
     },
     {
       name: 'Komşu burçlar (Yarım altmışlık)', mods: [-1, 0, 0, -2, 0, 0, 0, 1],
-      text: 'Komşu burçlar olarak birbirinize çok yakın ama çok farklısınız. Biriniz, diğerinin henüz öğrenmediği dersleri taşır. Bu ilişki öğretici ve gelişim odaklıdır; başta tuhaf gelen farklılıklar zamanla değerli bir tamamlanmaya dönüşür.',
+      text: 'Komşu burçlarsınız: yakınsınız ama oldukça farklısınız. Başta tuhaf gelen farklılıklar zamanla birbirinizi tamamlamaya başlar.',
       advice: 'Farklılıkları düzeltilmesi gereken hatalar olarak değil, öğrenme fırsatları olarak görün.'
     },
     {
       name: 'Altmışlık (Sekstil)', mods: [1, 4, 0, 0, 0, 1, 0, 5],
-      text: 'Aranızda dostça ve destekleyici bir altmışlık açı var. Birbirinizle konuşmak kolaydır, ortak ilgi alanları bulmak zahmetsizdir. Bu ilişki arkadaşlık temelinde büyür ve doğal bir akışa sahiptir.',
+      text: 'Burçlarınız arasında dostça bir altmışlık açı var. Konuşmak kolay, ortak ilgi bulmak zahmetsiz. İlişki çoğunlukla arkadaşlık üzerine kurulur.',
       advice: 'Arkadaşlığınızı ilişkinin temeli olarak koruyun; birlikte yeni projeler ve hobiler edinin.'
     },
     {
       name: 'Kare (Doksanlık)', mods: [-2, -3, -2, 6, -3, -3, -3, -3],
-      text: 'Burçlarınız birbirine kare açı yapıyor: bu, sürtünme ve meydan okuma demektir. Aranızda güçlü bir çekim ve elektrik vardır ama ihtiyaçlarınız ve yöntemleriniz sık sık çatışabilir. Bu ilişki emek ister; emek verildiğinde ise ikinizi de büyüten bir güce dönüşür.',
+      text: 'Burçlarınız birbirine kare açı yapıyor. Aranızda çekim var ama ihtiyaçlarınız ve yöntemleriniz sık sık çatışabilir. Bu ilişki emek ister; emek verirseniz ikinize de çok şey katar.',
       advice: 'Kazanmak yerine anlamaya odaklanın. Tartışmalarda “ben haklıyım” yerine “ne istiyoruz?” sorusunu sorun.'
     },
     {
       name: 'Üçgen (Trigon)', mods: [2, 2, 2, 1, 2, 2, 2, 2],
-      text: 'Burçlarınız birbirine üçgen açı yapıyor; astrolojideki en uyumlu ilişkilerden biri! Aynı elementi paylaştığınız için doğal bir akış, anlayış ve rahatlık vardır. Birbirinizi açıklamaya gerek kalmadan anlarsınız.',
+      text: 'Burçlarınız birbirine üçgen açı yapıyor. Aynı elementi paylaşıyorsunuz, bu yüzden birbirinizi kolay anlarsınız. İlişki zorlamadan akar.',
       advice: 'Uyumunuz o kadar kolay ki ilişkiyi “otomatik pilota” bırakmayın; birbirinizi şaşırtmaya devam edin.'
     },
     {
       name: 'Yüz elli (Quincunx)', mods: [-2, -2, -1, 1, -2, -2, -1, -2],
-      text: 'Burçlarınız arasında “quincunx” denen garip bir açı var: ne element ne de nitelik ortak. Birbirinizi ilginç ve gizemli bulursunuz ama sürekli küçük ayarlamalar yapmanız gerekir. Doğru iletişimle bu ilişki ikinizi de yeni alanlara taşır.',
+      text: 'Burçlarınız arasında ortak element ya da nitelik yok. Birbirinizi ilginç bulursunuz ama sık sık küçük ayarlar yapmanız gerekir. Açık konuşmak burada çok işe yarar.',
       advice: 'Varsayımlarda bulunmak yerine sorun. Birbirinizin ihtiyaçlarını açıkça konuşmak bu ilişkinin anahtarıdır.'
     },
     {
       name: 'Karşıt burçlar (Opozisyon)', mods: [3, 0, -1, 8, -2, -3, 0, -2],
-      text: 'Zodyak\'ta karşı karşıya duruyorsunuz: zıtlar birbirini çeker! Biriniz diğerinin eksik yarısını temsil eder. Aranızdaki manyetik çekim çok güçlüdür ve birbirinizden çok şey öğrenebilirsiniz. Denge kurulduğunda bu ilişki bir bütünün iki yarısına dönüşür.',
+      text: 'Burçlarınız zodyakta karşı karşıya. Birinizde eksik olan diğerinde var; bu yüzden aranızda güçlü bir çekim olur. Birbirinizden çok şey öğrenirsiniz, yeter ki uçlara kaçmayın.',
       advice: 'Uçlara savrulmak yerine ortada buluşun. Birbirinizin bakış açısını değiştirmeye değil, tamamlamaya çalışın.'
     }
   ];

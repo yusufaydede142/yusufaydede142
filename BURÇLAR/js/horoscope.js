@@ -14,7 +14,7 @@
     { theme: 'Para ve konfor', text: 'Gündemde para, alışveriş ve kendini güvende hissetme isteği var. Bütçeni gözden geçirmek ve küçük keyiflerle kendini şımartmak iyi gelir.', love: 0, work: 4, mood: 2 },
     { theme: 'İletişim', text: 'Telefonlar, mesajlar ve kısa görüşmeler artıyor. Aklındakini söylemek, yazışmak ve yakın çevrenle bağ kurmak için verimli bir gün.', love: 2, work: 3, mood: 3 },
     { theme: 'Ev ve aile', text: 'İçine dönmek, evde vakit geçirmek ve ailenle ilgilenmek isteyebilirsin. Duygusal olarak hassas olabilirsin; kendini yorma.', love: 1, work: -3, mood: -1 },
-    { theme: 'Aşk ve eğlence', text: 'Flört, romantizm ve eğlence enerjisi yüksek! Kalbinin sesini dinlemek, yaratıcı bir şeyle uğraşmak ya da sevdiğinle keyifli vakit geçirmek için harika bir gün.', love: 8, work: 0, mood: 6 },
+    { theme: 'Aşk ve eğlence', text: 'Flört, romantizm ve eğlence için iyi bir gün. Sevdiğinle vakit geçirmek ya da yaratıcı bir işle uğraşmak sana iyi gelir.', love: 8, work: 0, mood: 6 },
     { theme: 'Düzen ve sağlık', text: 'Yapılacaklar listesi, iş düzeni ve sağlık ön planda. Ertelediğin işleri bitirmek ve vücuduna iyi bakmak için uygun bir gün.', love: -2, work: 6, mood: 0 },
     { theme: 'İlişkiler', text: 'Ay ilişkiler alanında: partnerin ya da yakın çevrendeki biriyle bağ kurmak, birlikte karar almak ve uzlaşmak ön planda. İlişki konuşmaları için iyi bir zaman.', love: 7, work: 2, mood: 3 },
     { theme: 'Derinlik ve tutku', text: 'Duygular yoğun, sezgiler güçlü. Derin konuşmalar ve tutku öne çıkabilir; kıskançlık ve kontrol isteğine dikkat et.', love: 3, work: 0, mood: -2 },

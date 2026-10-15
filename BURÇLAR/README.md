@@ -1,36 +1,32 @@
-# ✦ Burç Uyum Rehberi ✦
+# Burç Uyumu
 
-Doğum tarihi, doğum saati, doğum yeri ve cinsiyete göre **sana en uygun erkek / kadın burçlarını sırayla** gösteren, aralarındaki uyumu detaylı anlatan bir web uygulaması.
+Doğum tarihine, saatine, yerine ve cinsiyetine göre sana en uygun burçları sıralar ve aranızdaki uyumu açıklar.
 
-## Nasıl açılır?
-Kurulum gerekmez, internet de gerekmez. `index.html` dosyasına çift tıklayıp tarayıcıda açman yeterli.
+## Kullanım
+Kurulum gerekmez. `index.html` dosyasını tarayıcıda açman yeterli; internet bağlantısı da gerekmez.
 
-## Özellikler
-- **Gerçek astronomik hesaplama:** Güneş, Ay, Merkür, Venüs, Mars konumları ve Yükselen burç doğum anına ve yerine göre hesaplanır.
-- **81 il + 56 yurtdışı şehri**; listede olmayan yerler için enlem/boylam girişi.
-- **Türkiye saat dilimi geçmişi:** 2016 öncesi yaz/kış saati uygulaması otomatik hesaba katılır (gelişmiş ayarlardan elle değiştirilebilir).
-- **Doğum saati bilinmiyorsa** öğle saati kullanılır, Ay'ın o gün burç değiştirdiği durumlar belirtilir.
-- **Kişiselleştirilmiş uyum sıralaması (1–12):** Güneş burcu uyumu; Ay, Yükselen, Venüs/Mars (partner cinsiyetine göre çekim gezegeni) ve 7. ev (alçalan burç) ile birlikte değerlendirilir.
-- **8 kategoride uyum puanı:** Aşk, İletişim, Duygusal Bağ, Tutku, Güven, Ortak Değerler, Evlilik, Arkadaşlık.
-- **Her burç için detaylı rapor:** açı ilişkisi, element ve nitelik uyumu, yönetici gezegenler, haritandan kişisel notlar, güçlü yönler, zorluklar, o burcun erkeği/kadını hakkında bilgi, kalbini kazanma ipuçları ve tavsiyeler.
-- **Belirli biriyle uyum (sinastri):** Partnerin doğum bilgilerini girince iki harita gezegen gezegen karşılaştırılır; Güneş–Ay, Venüs–Mars gibi açılar, evlilik evi bağlantıları, kategori puanları ve yan yana harita tablosu gösterilir.
-- **Sana özel günlük / haftalık yorum:** O günün gerçek gezegen konumları doğum haritanla karşılaştırılır; günün teması, gökyüzü etkileri, aşk/iş/ruh hali puanları, Merkür geri uyarısı, haftanın en iyi günleri ve burç geçişleri.
-- **WhatsApp'ta paylaşma** ve metni kopyalama (kendi sonuçların ve partner uyumu için).
-- **Açık / koyu tema** seçeneği (sağ üstteki düğme, tercih hatırlanır).
-- **Ünlülerle uyum:** 85 Türk ve dünya ünlüsüyle kişisel uyum puanın; arama ve cinsiyet/köken filtresi.
-- **Arkadaşlık uyumu** sekmesi, element/nitelik dağılımı, kişilik profili, yazdırma / PDF.
+## Neler var
+- **Uyum:** 12 burç, sana uygunluk sırasına göre. İlişki ve arkadaşlık için ayrı sıralama. Her burcun ayrıntısında 8 başlıkta puan, nedenleri ve öneriler.
+- **Haritan:** Güneş, Ay, yükselen, Venüs, Mars ve Merkür burçların; element dengen ve burcunun özellikleri.
+- **Günlük:** O günün gerçek gezegen konumları senin haritanla karşılaştırılır. Bugün, yarın ve bu hafta için.
+- **Biriyle karşılaştır:** İki kişinin doğum haritasını yan yana koyar, aranızdaki açıları gösterir.
+- **Ünlüler:** 85 ünlüyle uyumun; arama ve filtreler.
+- Sonuçları WhatsApp'ta paylaşma, açık ve koyu tema.
+
+## Nasıl hesaplanıyor
+Gezegen konumları astronomik formüllerle (Meeus ve NASA/JPL yaklaşık yörünge elemanları) doğum anına ve yerine göre hesaplanır. Türkiye için 2016 öncesi yaz/kış saati otomatik hesaba katılır. Doğum saati bilinmiyorsa yükselen burç hesaplanamaz; bu durumda öğle saati kullanılır.
 
 ## Dosyalar
-| Dosya | Açıklama |
+| Dosya | İçerik |
 |---|---|
-| `index.html` | Ana sayfa |
-| `css/style.css` | Tasarım (mobil uyumlu) |
-| `js/astro.js` | Gezegen ve yükselen hesaplamaları |
-| `js/data.js` | Burç bilgileri ve yorum metinleri |
-| `js/compat.js` | Uyum puanlama motoru |
-| `js/cities.js` | Şehir koordinatları ve saat dilimleri |
-| `js/horoscope.js` | Günlük / haftalık kişisel yorum |
+| `index.html` | Sayfa |
+| `css/style.css` | Görünüm |
+| `js/astro.js` | Gezegen ve yükselen hesabı |
+| `js/data.js` | Burç bilgileri ve metinler |
+| `js/compat.js` | Uyum puanlama |
+| `js/horoscope.js` | Günlük ve haftalık yorum |
+| `js/cities.js` | Şehirler ve saat dilimleri |
 | `js/celebs.js` | Ünlü listesi |
-| `js/app.js` | Arayüz mantığı |
+| `js/app.js` | Arayüz |
 
-> Astrolojik geleneklere dayanır ve eğlence amaçlıdır.
+Astrolojik geleneklere dayanır, eğlence amaçlıdır.
