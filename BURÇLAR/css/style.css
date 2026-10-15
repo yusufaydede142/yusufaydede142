@@ -202,3 +202,30 @@ form .btn { width: 100%; margin-top: 8px; }
   .tab-panel { display: block !important; }
   body { background: #fff; }
 }
+
+/* Doğum haritası çizimi */
+.wheel { margin: 8px auto 16px; max-width: 360px; }
+.wheel svg { width: 100%; height: auto; display: block; color: var(--text); }
+.w-line { fill: none; stroke: var(--line); stroke-width: 1; }
+.w-sign { fill: var(--muted); font-size: 15px; text-anchor: middle; dominant-baseline: central; }
+.w-planet { fill: var(--accent); font-size: 18px; text-anchor: middle; dominant-baseline: central; }
+.w-tick { stroke: var(--accent); stroke-width: 1.5; }
+.w-axis { stroke: var(--text); stroke-width: 1.2; }
+.w-label { fill: var(--text); font-size: 11px; font-weight: 600; }
+.w-asp { stroke: var(--accent); stroke-width: 1; opacity: .55; }
+.w-asp.hard { stroke: var(--muted); stroke-dasharray: 4 3; }
+.wheel figcaption { text-align: center; }
+
+/* Davet ve çevre */
+.panel.invite .share { margin-top: 12px; }
+button.row-btn { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.row-btn:first-child { border-top: 0; }
+button.row-btn:hover { background: var(--accent-soft); }
+.circle-toggle { display: block; margin-left: auto; color: var(--accent); }
+.panel.invite { margin-top: 16px; }
+.streak { margin: 0 0 8px; }
+#inviteNote:not(.hidden) { margin: 0 0 16px; color: var(--text); }
+
+.table th, .table td { overflow-wrap: anywhere; }
+.more .table { table-layout: fixed; }
+.table thead th { white-space: normal; }
