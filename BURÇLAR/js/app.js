@@ -59,7 +59,7 @@
     if (v.startsWith('w:')) return window.Cities.world[+v.slice(2)];
     if (v === 'custom') {
       const lat = parseFloat($(id.lat).value), lon = parseFloat($(id.lon).value), tz = parseFloat($(id.tz).value);
-      if ([lat, lon, tz].some(Number.isNaN) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return null;
+      if ([lat, lon, tz].some(Number.isNaN) || Math.abs(lat) > 90 || Math.abs(lon) > 180 || tz < -12 || tz > 14) return null;
       return { name: `${lat.toFixed(2)}°, ${lon.toFixed(2)}°`, lat, lon, tz, dst: 'NONE' };
     }
     return null;
@@ -190,7 +190,7 @@
     if (chart.cusp) notes += `<p class="note">Güneş burç sınırına çok yakın; ${SIGNS[chart.cusp.other].name} özellikleri de sende görülebilir.</p>`;
     if (!input.timeKnown) notes += '<p class="note">Doğum saati olmadan yükselen burç hesaplanamaz. Sonuçlar öğle saatine göre hesaplandı.</p>';
     return `<div class="summary">
-      <h1><span class="glyph">${sun.symbol}</span>${input.name ? esc(input.name) + ', ' : ''}${sun.name} ${genderWord(input.gender)}sin</h1>
+      <h1><span class="glyph">${sun.symbol}</span>${input.name ? esc(input.name) + ', ' : ''}${sun.name} ${input.gender === 'erkek' ? 'erkeğisin' : 'kadınısın'}</h1>
       <p class="muted">${parts.join(' · ')}<br>${date}, ${time}, ${esc(input.place.name)}</p>
       ${notes}
       <button class="link-btn" type="button" id="editBtn">Bilgileri değiştir</button>
@@ -224,7 +224,7 @@
         <summary>
           <span class="row-glyph">${s.symbol}</span>
           <span><span class="row-title">${s.name}${mode === 'love' ? ' ' + genderWord(pg) : ''}</span><span class="row-sub">${s.element}</span></span>
-          <span class="row-score">${levelShort(score)}</span>
+          <span class="row-score">${score}</span>
         </summary>
         <div class="detail"></div>
       </details>`;
@@ -239,7 +239,7 @@
     const friend = mode === 'friend';
     const score = friend ? r.friendship : r.score;
 
-    let html = `<p>Uyum puanınız ${score}${friend ? '' : `; yalnızca Güneş burçlarına göre ${r.base}`}. ${friend ? catSentence(r.categories, 'Arkadaşlığınızın', ['iletisim', 'deger', 'guven', 'duygu']) : catSentence(r.categories, 'İlişkinizin')}</p>`;
+    let html = `<p>Uyumunuz: ${levelShort(score).toLocaleLowerCase('tr')}. ${friend ? catSentence(r.categories, 'Arkadaşlığınızın', ['iletisim', 'deger', 'guven', 'duygu']) : catSentence(r.categories, 'İlişkinizin')}</p>`;
     html += `<h3>Neden?</h3><p>${r.aspect.text} ${r.elementText.text}</p>`;
     if (!friend && r.reasons.length) {
       html += `<ul class="plain pm">${r.reasons.map((x) => `<li class="${x.type}">${x.text}</li>`).join('')}</ul>`;
@@ -521,7 +521,7 @@
         return `<div class="row-line">
           <span class="row-glyph">${s.symbol}</span>
           <span><span class="row-title">${esc(c.name)}</span><span class="row-sub">${c.job} · ${s.name}</span></span>
-          <span class="row-score">${levelShort(r.score)}</span>
+          <span class="row-score">${r.score}</span>
         </div>`;
       }).join('') : '<p class="empty">Bu isimde kimse yok.</p>';
       $('celebMore').classList.toggle('hidden', list.length <= limit);
@@ -568,7 +568,7 @@
   function shareTextForResults({ input, chart, analysis }) {
     const s = SIGNS[chart.planets.sun.sign];
     const top = analysis.ranking.slice(0, 3).map((r, i) => `${i + 1}. ${SIGNS[r.sign].name} (${r.score})`).join('\n');
-    return `${s.name} ${genderWord(input.gender)}yim. Bana en uygun ${plural(input.partner)} burçları:\n${top}`;
+    return `${s.name} ${input.gender === 'erkek' ? 'erkeğiyim' : 'kadınıyım'}. Bana en uygun ${plural(input.partner)} burçları:\n${top}`;
   }
 
   function shareTextForSynastry(inA, A, inB, B, syn) {
