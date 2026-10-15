@@ -191,14 +191,14 @@
   ];
 
   const CATEGORIES = [
-    { key: 'ask', label: 'Aşk & Romantizm', icon: '💘' },
-    { key: 'iletisim', label: 'İletişim', icon: '💬' },
-    { key: 'duygu', label: 'Duygusal Bağ', icon: '🌙' },
-    { key: 'tutku', label: 'Tutku & Çekim', icon: '🔥' },
-    { key: 'guven', label: 'Güven & Sadakat', icon: '🤝' },
-    { key: 'deger', label: 'Ortak Değerler', icon: '⚖️' },
-    { key: 'evlilik', label: 'Evlilik & Uzun Vade', icon: '💍' },
-    { key: 'arkadas', label: 'Arkadaşlık', icon: '🌟' }
+    { key: 'ask', label: 'Aşk' },
+    { key: 'iletisim', label: 'İletişim' },
+    { key: 'duygu', label: 'Duygusal bağ' },
+    { key: 'tutku', label: 'Tutku' },
+    { key: 'guven', label: 'Güven' },
+    { key: 'deger', label: 'Ortak değerler' },
+    { key: 'evlilik', label: 'Uzun vade' },
+    { key: 'arkadas', label: 'Arkadaşlık' }
   ];
 
   // Element çiftine göre kategori düzeltmeleri [ask, iletisim, duygu, tutku, guven, deger, evlilik, arkadas]
@@ -394,12 +394,12 @@
   };
 
   const PLANET_LABELS = {
-    sun: { name: 'Güneş', icon: '☉', desc: 'Öz benliğin, kimliğin ve yaşam enerjin' },
-    moon: { name: 'Ay', icon: '☽', desc: 'Duygusal dünyan ve iç ihtiyaçların' },
-    asc: { name: 'Yükselen', icon: 'AC', desc: 'Dışa yansıyan yüzün ve ilk izlenimin' },
-    venus: { name: 'Venüs', icon: '♀', desc: 'Aşk tarzın ve neyi çekici bulduğun' },
-    mars: { name: 'Mars', icon: '♂', desc: 'Tutkun, arzun ve harekete geçme biçimin' },
-    mercury: { name: 'Merkür', icon: '☿', desc: 'Düşünme ve iletişim tarzın' }
+    sun: { name: 'Güneş', desc: 'Öz benliğin, kimliğin ve yaşam enerjin' },
+    moon: { name: 'Ay', desc: 'Duygusal dünyan ve iç ihtiyaçların' },
+    asc: { name: 'Yükselen', desc: 'Dışa yansıyan yüzün ve ilk izlenimin' },
+    venus: { name: 'Venüs', desc: 'Aşk tarzın ve neyi çekici bulduğun' },
+    mars: { name: 'Mars', desc: 'Tutkun, arzun ve harekete geçme biçimin' },
+    mercury: { name: 'Merkür', desc: 'Düşünme ve iletişim tarzın' }
   };
 
 

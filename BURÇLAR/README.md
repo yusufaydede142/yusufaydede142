@@ -6,11 +6,10 @@ Doğum tarihine, saatine, yerine ve cinsiyetine göre sana en uygun burçları s
 Kurulum gerekmez. `index.html` dosyasını tarayıcıda açman yeterli; internet bağlantısı da gerekmez.
 
 ## Neler var
-- **Uyum:** 12 burç, sana uygunluk sırasına göre. İlişki ve arkadaşlık için ayrı sıralama. Her burcun ayrıntısında 8 başlıkta puan, nedenleri ve öneriler.
+- **Uyum:** 12 burç, sana uygunluk sırasına göre. İlişki ve arkadaşlık için ayrı sıralama. Her burcun ayrıntısında uyumun nedeni, karşı tarafın özellikleri ve bir öneri. Altında ünlülerle uyumun.
 - **Haritan:** Güneş, Ay, yükselen, Venüs, Mars ve Merkür burçların; element dengen ve burcunun özellikleri.
 - **Günlük:** O günün gerçek gezegen konumları senin haritanla karşılaştırılır. Bugün, yarın ve bu hafta için.
-- **Biriyle karşılaştır:** İki kişinin doğum haritasını yan yana koyar, aranızdaki açıları gösterir.
-- **Ünlüler:** 85 ünlüyle uyumun; arama ve filtreler.
+- **Karşılaştır:** İki kişinin doğum haritasını yan yana koyar, aranızdaki açıları gösterir.
 - Sonuçları WhatsApp'ta paylaşma, açık ve koyu tema.
 
 ## Nasıl hesaplanıyor

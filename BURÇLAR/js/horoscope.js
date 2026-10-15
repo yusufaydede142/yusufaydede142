@@ -46,8 +46,6 @@
   ];
   const ORB = { sun: 3, moon: 5, mercury: 3, venus: 3, mars: 3 };
 
-  const COLORS = ['Kırmızı', 'Turuncu', 'Altın sarısı', 'Yeşil', 'Turkuaz', 'Lacivert', 'Mor', 'Pembe', 'Beyaz', 'Gümüş', 'Bordo', 'Deniz mavisi'];
-
   function utNoonFor(date) {
     // Kullanıcının yerel öğle saatini UT'ye çevir
     return 12 + date.getTimezoneOffset() / 60;
@@ -74,12 +72,6 @@
   function houseOf(chart, lon) {
     const ref = chart.planets.asc ? chart.planets.asc.sign : chart.planets.sun.sign;
     return (A.signIndex(lon) - ref + 12) % 12;
-  }
-
-  function hashNum(str) {
-    let h = 2166136261;
-    for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-    return Math.abs(h);
   }
 
   function daily(chart, date) {
@@ -110,14 +102,12 @@
     });
     aspects.sort((a, b) => b.strength - a.strength);
 
-    const seed = hashNum(date.toDateString() + chart.planets.sun.sign);
-    Object.keys(scores).forEach((k) => { scores[k] = Math.round(clamp(scores[k] + (seed % 7) - 3, 25, 98)); });
+    Object.keys(scores).forEach((k) => { scores[k] = Math.round(clamp(scores[k], 25, 98)); });
     const overall = Math.round((scores.love + scores.work + scores.mood) / 3);
 
     return {
       date, moonSign: A.signIndex(t.moon), house, houseInfo: H, aspects: aspects.slice(0, 4), scores, overall,
-      mercuryRetro: t.mercuryRetro,
-      lucky: { number: (seed % 9) + 1, color: COLORS[(seed >> 4) % COLORS.length], hour: `${String(8 + (seed % 12)).padStart(2, '0')}:00` }
+      mercuryRetro: t.mercuryRetro
     };
   }
 

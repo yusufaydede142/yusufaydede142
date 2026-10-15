@@ -12,6 +12,13 @@
   const cap = (s) => s.charAt(0).toLocaleUpperCase('tr') + s.slice(1);
   const levelShort = (score) => (score >= 90 ? 'Çok güçlü' : score >= 80 ? 'Çok iyi' : score >= 70 ? 'İyi' : score >= 60 ? 'Orta' : score >= 50 ? 'Emek ister' : 'Zor');
 
+  // 8 kategori yerine tek cümle: en güçlü iki alan ve en zayıf alan
+  function catSentence(cats, who, keys) {
+    const sorted = CATEGORIES.filter((c) => !keys || keys.includes(c.key)).sort((x, y) => cats[y.key] - cats[x.key]);
+    const lo = (c) => c.label.toLocaleLowerCase('tr');
+    return `${who} en güçlü yanı ${lo(sorted[0])} ve ${lo(sorted[1])}, en çok özen isteyen yanı ${lo(sorted[sorted.length - 1])}.`;
+  }
+
   const MONTHS = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
   const DAYS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
   const fmtDay = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]} ${DAYS[d.getDay()]}`;
@@ -136,8 +143,7 @@
     { key: 'uyum', label: 'Uyum' },
     { key: 'harita', label: 'Haritan' },
     { key: 'gunluk', label: 'Günlük' },
-    { key: 'partner', label: 'Biriyle karşılaştır' },
-    { key: 'unlu', label: 'Ünlüler' }
+    { key: 'partner', label: 'Karşılaştır' }
   ];
 
   function run(input) {
@@ -150,8 +156,7 @@
       `<div class="tab-panel" data-panel="uyum">${renderMatches(ctx)}</div>` +
       `<div class="tab-panel hidden" data-panel="harita">${renderChart(ctx)}</div>` +
       `<div class="tab-panel hidden" data-panel="gunluk">${renderDailyShell()}</div>` +
-      `<div class="tab-panel hidden" data-panel="partner">${renderPartnerForm(input)}</div>` +
-      `<div class="tab-panel hidden" data-panel="unlu">${renderCelebShell(input)}</div>`;
+      `<div class="tab-panel hidden" data-panel="partner">${renderPartnerForm(input)}</div>`;
     $('formCard').classList.add('hidden');
     out.classList.remove('hidden');
 
@@ -167,7 +172,6 @@
     bindMatches(ctx);
     bindDaily(ctx);
     bindPartner(ctx);
-    bindCelebs(ctx);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -204,29 +208,27 @@
       </div>
       <p class="muted" id="matchIntro">Sana en uygun ${plural(pg)} burçları, yukarıdan aşağıya. Ayrıntı için birine dokun.</p>
       <div class="list" id="matchList">${matchRows(analysis.ranking, 'love', pg)}</div>
-      <p class="muted" style="margin-top:12px;font-size:.9rem">Sıralama yalnızca Güneş burcuna değil; Ay${chart.planets.asc ? ', yükselen' : ''}, Venüs ve Mars konumlarına da bakılarak yapıldı.</p>
-      ${shareBar('shareMatches')}`;
+      <p class="small-note">Sıralama yalnızca Güneş burcuna değil; Ay${chart.planets.asc ? ', yükselen' : ''}, Venüs ve Mars konumlarına da bakılarak yapıldı.</p>
+      ${shareBar('shareMatches')}
+      <details class="more">
+        <summary>Ünlülerle uyumun</summary>
+        ${renderCelebShell()}
+      </details>`;
   }
 
   function matchRows(list, mode, pg) {
-    return list.map((r, i) => {
+    return list.map((r) => {
       const s = SIGNS[r.sign];
       const score = mode === 'love' ? r.score : r.friendship;
       return `<details class="row" data-sign="${r.sign}">
         <summary>
-          <span class="row-no">${i + 1}</span>
           <span class="row-glyph">${s.symbol}</span>
-          <span><span class="row-title">${s.name}${mode === 'love' ? ' ' + genderWord(pg) : ''}</span><span class="row-sub">${s.element} · ${s.dates}</span></span>
-          <span class="row-score"><b>${score}</b><span>${levelShort(score)}</span></span>
+          <span><span class="row-title">${s.name}${mode === 'love' ? ' ' + genderWord(pg) : ''}</span><span class="row-sub">${s.element}</span></span>
+          <span class="row-score">${levelShort(score)}</span>
         </summary>
         <div class="detail"></div>
       </details>`;
     }).join('');
-  }
-
-  function meters(cats) {
-    return `<div class="meters">${CATEGORIES.map((c) => `
-      <div class="meter"><div class="meter-head"><span>${c.label}</span><b>${cats[c.key]}</b></div><div class="track"><i style="width:${cats[c.key]}%"></i></div></div>`).join('')}</div>`;
   }
 
   function matchDetail({ input, chart, analysis }, signIdx, mode) {
@@ -235,28 +237,22 @@
     const s = SIGNS[signIdx];
     const pg = input.partner;
     const friend = mode === 'friend';
-    const plus = r.elementText.plus.slice(0, 3);
-    const minus = r.elementText.minus.slice(0, 3);
+    const score = friend ? r.friendship : r.score;
 
-    let html = friend
-      ? `<p>Arkadaşlık uyumunuz: <b>${r.friendship}</b> (${levelShort(r.friendship).toLocaleLowerCase('tr')}).</p>`
-      : `<p>Senin haritana göre uyum: <b>${r.score}</b>. Yalnızca Güneş burçlarına bakınca: ${r.base}.</p>`;
-    html += meters(r.categories);
-    html += `<h3>Neden?</h3><p>${r.aspect.text}</p><p>${r.elementText.text}</p>`;
+    let html = `<p>Uyum puanınız ${score}${friend ? '' : `; yalnızca Güneş burçlarına göre ${r.base}`}. ${friend ? catSentence(r.categories, 'Arkadaşlığınızın', ['iletisim', 'deger', 'guven', 'duygu']) : catSentence(r.categories, 'İlişkinizin')}</p>`;
+    html += `<h3>Neden?</h3><p>${r.aspect.text} ${r.elementText.text}</p>`;
     if (!friend && r.reasons.length) {
       html += `<ul class="plain pm">${r.reasons.map((x) => `<li class="${x.type}">${x.text}</li>`).join('')}</ul>`;
     }
-    html += `<div class="two">
-        <div><h3>İyi giden</h3><ul class="plain pm">${plus.map((x) => `<li class="plus">${x}</li>`).join('')}</ul></div>
-        <div><h3>Dikkat</h3><ul class="plain pm">${minus.map((x) => `<li class="minus">${x}</li>`).join('')}</ul></div>
-      </div>`;
+    html += `<p><b>Öneri:</b> ${r.aspect.advice} ${adviceForElements(me.element, s.element)}</p>`;
     if (friend) {
       html += `<h3>${s.name}</h3><p>${s.summary}</p>`;
     } else {
       html += `<h3>${s.name} ${genderWord(pg)}</h3><p>${pg === 'erkek' ? s.male : s.female}</p>
         <p><b>Yaklaşırken:</b> ${pg === 'erkek' ? s.winMale : s.winFemale}</p>`;
+      const names = window.Celebs.filter((c) => c.sign === signIdx && c.gender === pg).slice(0, 4).map((c) => esc(c.name));
+      if (names.length) html += `<p class="small-note">Bu burçtan tanıdık isimler: ${names.join(', ')}.</p>`;
     }
-    html += `<h3>Öneri</h3><p>${r.aspect.advice} ${adviceForElements(me.element, s.element)}</p>`;
     return html;
   }
 
@@ -278,6 +274,7 @@
     }));
     bindRows();
     bindShare('shareMatches', () => shareTextForResults(ctx));
+    bindCelebs(ctx);
   }
 
   function adviceForElements(a, b) {
@@ -312,7 +309,7 @@
 
     const bal = window.Compat.balance(chart);
     const elMeters = Object.entries(bal.elements).map(([k, v]) => `
-      <div class="meter"><div class="meter-head"><span>${k}</span><b>%${v}</b></div><div class="track"><i style="width:${v}%"></i></div></div>`).join('');
+      <div class="meter"><div class="meter-head"><span>${k}</span></div><div class="track"><i style="width:${v}%"></i></div></div>`).join('');
     const dom = Object.entries(bal.elements).sort((a, b) => b[1] - a[1])[0][0];
     const domText = { 'Ateş': 'hareketli ve cesur', 'Toprak': 'pratik ve sağlam', 'Hava': 'sosyal ve meraklı', 'Su': 'duygusal ve sezgisel' }[dom];
 
@@ -334,7 +331,7 @@
           <div><h3>Güçlü yanların</h3><ul class="plain pm">${s.strengths.map((x) => `<li class="plus">${x}</li>`).join('')}</ul></div>
           <div><h3>Zorlandığın yerler</h3><ul class="plain pm">${s.weaknesses.map((x) => `<li class="minus">${x}</li>`).join('')}</ul></div>
         </div>
-        <p class="tags" style="margin-top:16px">${s.element} · ${s.modality} · Yönetici: ${s.ruler} · ${s.dates}</p>
+        <p class="tags">${s.modality} · Yönetici: ${s.ruler}</p>
       </div>`;
   }
 
@@ -350,28 +347,24 @@
       <div id="horoContent"></div>`;
   }
 
-  function dayMeters(sc) {
-    const L = { love: 'Aşk', work: 'İş ve para', mood: 'Ruh hali' };
-    return `<div class="meters">${Object.keys(L).map((k) => `
-      <div class="meter"><div class="meter-head"><span>${L[k]}</span><b>${sc[k]}</b></div><div class="track"><i style="width:${sc[k]}%"></i></div></div>`).join('')}</div>`;
+  function dayWords(sc) {
+    const word = (v) => (v >= 72 ? 'iyi' : v >= 55 ? 'dengeli' : 'zayıf');
+    return `<p class="day-words">Aşk: <b>${word(sc.love)}</b> · İş ve para: <b>${word(sc.work)}</b> · Ruh hali: <b>${word(sc.mood)}</b></p>`;
   }
 
-  function renderDay(d, compact) {
+  function renderDay(d) {
     const ms = SIGNS[d.moonSign];
-    return `${compact ? '' : `<h2>${fmtDay(d.date)}</h2>`}
+    return `<h2>${fmtDay(d.date)}</h2>
       <p class="muted">Ay ${ms.name} burcunda, senin ${d.house + 1}. evinde.</p>
       <h3>${d.houseInfo.theme}</h3>
       <p>${d.houseInfo.text}</p>
       ${d.mercuryRetro ? '<p class="note">Merkür geri hareket ediyor. Yazışmalarda, imzalarda ve alışverişte biraz daha dikkatli ol.</p>' : ''}
       ${d.aspects.length ? `<h3>Gökyüzünden etkiler</h3><ul class="plain pm">${d.aspects.map((a) => `<li class="${a.harm > 0 ? 'plus' : 'minus'}">${a.text}</li>`).join('')}</ul>` : ''}
-      ${dayMeters(d.scores)}`;
+      ${dayWords(d.scores)}`;
   }
 
   function renderWeek(w) {
-    const rows = w.days.map((d) => `<details class="row simple"><summary>
-        <span><span class="row-title">${fmtDay(d.date)}</span><span class="row-sub">${d.houseInfo.theme}</span></span>
-        <span class="row-score"><b>${d.overall}</b></span>
-      </summary><div class="detail">${renderDay(d, true)}</div></details>`).join('');
+    const rows = w.days.map((d) => `<li><b>${fmtDay(d.date)}</b><span class="row-sub">${d.houseInfo.theme}</span></li>`).join('');
     const ev = w.events.length
       ? `<h3>Bu hafta gökyüzünde</h3><ul class="plain">${w.events.map((e) => `<li><b>${fmtDay(e.date)}:</b> ${e.text}</li>`).join('')}</ul>` : '';
     return `<div class="panel">
@@ -381,8 +374,10 @@
           <tr><th>Keyif için</th><td>${fmtDay(w.bestMood.date)}</td></tr>
         </tbody></table>
         ${ev}
-      </div>
-      <div class="list">${rows}</div>`;
+        <h3>Gün gün</h3>
+        <ul class="plain">${rows}</ul>
+        <p class="small-note">Bir günün ayrıntısı için “Bugün” ya da “Yarın”a bak.</p>
+      </div>`;
   }
 
   function bindDaily({ chart }) {
@@ -392,7 +387,7 @@
       $('horoContent').innerHTML = mode === 'week'
         ? renderWeek(window.Horoscope.weekly(chart, t))
         : `<div class="panel">${renderDay(window.Horoscope.daily(chart, mode === 'tomorrow' ? new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1) : t))}
-           <p class="muted" style="font-size:.85rem;margin-top:16px">Gezegenlerin o günkü gerçek konumları senin doğum haritanla karşılaştırılarak hesaplandı.</p></div>`;
+           <p class="small-note">Gezegenlerin o günkü gerçek konumları senin doğum haritanla karşılaştırılarak hesaplandı.</p></div>`;
     };
     document.querySelectorAll('input[name="dayMode"]').forEach((r) => r.addEventListener('change', show));
     show();
@@ -475,25 +470,23 @@
     const owner = (who, side) => ((who === 'AB') === (side === 'x') ? 'senin' : 'onun');
 
     const cell = (k, sign, chart) => (sign === null ? '<span class="muted">Saat gerekli</span>' : `${SIGNS[sign].symbol} ${signLabel(chart, k)}`);
-    const rows = syn.signRows.map((r) => `<tr><th>${PLANET_LABELS[r.key].name}</th><td>${cell(r.key, r.a, A)}</td><td>${cell(r.key, r.b, B)}</td><td>${r.raw === null ? '–' : r.raw}</td></tr>`).join('');
+    const rows = syn.signRows.map((r) => `<tr><th>${PLANET_LABELS[r.key].name}</th><td>${cell(r.key, r.a, A)}</td><td>${cell(r.key, r.b, B)}</td></tr>`).join('');
 
-    const sorted = CATEGORIES.slice().sort((x, y) => syn.categories[y.key] - syn.categories[x.key]);
-    const aspects = syn.aspects.slice(0, 5).map((a) => `<li class="${a.effect >= 0 ? 'plus' : 'minus'}"><b>${cap(owner(a.who, 'x'))} ${PLANET_LABELS[a.x].name} ile ${owner(a.who, 'y')} ${PLANET_LABELS[a.y].name}: ${a.aspect.name.toLocaleLowerCase('tr')}.</b> ${a.aspect.text} ${a.pair.theme}</li>`).join('');
+    const aspects = syn.aspects.slice(0, 3).map((a) => `<li class="${a.effect >= 0 ? 'plus' : 'minus'}"><b>${cap(owner(a.who, 'x'))} ${PLANET_LABELS[a.x].name} ile ${owner(a.who, 'y')} ${PLANET_LABELS[a.y].name}: ${a.aspect.name.toLocaleLowerCase('tr')}.</b> ${a.aspect.text} ${a.pair.theme}</li>`).join('');
 
     return `<div class="panel">
       <div class="pair-head">
         <div><h2>${nameA} ve ${nameB}</h2><p class="muted">${sa.symbol} ${sa.name} · ${sb.symbol} ${sb.name}</p></div>
-        <div style="text-align:right"><div class="big-score">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span></div>
+        <div class="pair-score"><div class="big-score">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span></div>
       </div>
       ${!inA.timeKnown || !inB.timeKnown ? '<p class="note">Doğum saatlerinden biri bilinmediği için Ay ve yükselenle ilgili açılar hesaba katılmadı.</p>' : ''}
-      <p>En güçlü olduğunuz alan ${sorted[0].label.toLocaleLowerCase('tr')}, en çok özen isteyen alan ${sorted[sorted.length - 1].label.toLocaleLowerCase('tr')}.</p>
-      ${meters(syn.categories)}
+      <p>${catSentence(syn.categories, 'İlişkinizin')}</p>
+      ${syn.notes.length ? `<ul class="plain pm">${syn.notes.map((n) => `<li class="plus">${n}</li>`).join('')}</ul>` : ''}
 
-      <h3>Haritalarınız yan yana</h3>
-      <table class="table"><thead><tr><th></th><th>${nameA}</th><th>${nameB}</th><th>Uyum</th></tr></thead><tbody>${rows}</tbody></table>
-
-      ${syn.notes.length ? `<h3>Evlilik evi</h3><ul class="plain pm">${syn.notes.map((n) => `<li class="plus">${n}</li>`).join('')}</ul>` : ''}
-      ${aspects ? `<h3>Aranızdaki açılar</h3><ul class="plain pm">${aspects}</ul>` : ''}
+      ${aspects ? `<details class="more"><summary>Aranızdaki açılar</summary><ul class="plain pm">${aspects}</ul></details>` : ''}
+      <details class="more"><summary>Haritalarınız yan yana</summary>
+        <table class="table"><thead><tr><th></th><th>${nameA}</th><th>${nameB}</th></tr></thead><tbody>${rows}</tbody></table>
+      </details>
 
       <h3>${sa.name} ve ${sb.name}</h3>
       <p>${sp.aspect.text}</p>
@@ -509,48 +502,32 @@
 
   /* ---------- Ünlüler ---------- */
 
-  function renderCelebShell(input) {
-    const other = input.partner === 'erkek' ? 'kadin' : 'erkek';
-    return `<div class="grid three filters" style="margin-top:16px">
-        <label class="field"><span>Ara</span><input type="search" id="celebSearch"></label>
-        <label class="field"><span>Cinsiyet</span><select id="celebGender">
-          <option value="${input.partner}">${cap(plural(input.partner))}</option>
-          <option value="${other}">${cap(plural(other))}</option>
-          <option value="">Hepsi</option></select></label>
-        <label class="field"><span>Nereden</span><select id="celebOrigin">
-          <option value="">Hepsi</option><option value="tr">Türkiye</option><option value="w">Dünya</option></select></label>
-      </div>
-      <p class="muted" style="margin-top:12px">Ünlülerin Güneş burcuyla senin uyumun.</p>
+  function renderCelebShell() {
+    return `<label class="field celeb-search"><span>İsim ara</span><input type="search" id="celebSearch"></label>
       <div class="list" id="celebList"></div>
-      <button class="btn quiet hidden" type="button" id="celebMore" style="margin-top:12px">Daha fazla</button>`;
+      <button class="btn quiet hidden" type="button" id="celebMore">Daha fazla</button>`;
   }
 
-  function bindCelebs({ chart, analysis }) {
-    const me = SIGNS[chart.planets.sun.sign];
-    let limit = 15;
+  function bindCelebs({ input, analysis }) {
+    let limit = 10;
     const draw = () => {
       const q = $('celebSearch').value.trim().toLocaleLowerCase('tr');
-      const g = $('celebGender').value, o = $('celebOrigin').value;
       const list = window.Celebs
-        .filter((c) => (!g || c.gender === g) && (!o || c.origin === o) && (!q || c.name.toLocaleLowerCase('tr').includes(q)))
+        .filter((c) => (q ? c.name.toLocaleLowerCase('tr').includes(q) : c.gender === input.partner))
         .map((c) => ({ c, r: analysis.results[c.sign] }))
         .sort((x, y) => y.r.score - x.r.score || x.c.name.localeCompare(y.c.name, 'tr'));
       $('celebList').innerHTML = list.length ? list.slice(0, limit).map(({ c, r }) => {
         const s = SIGNS[c.sign];
-        return `<details class="row"><summary>
-          <span class="row-no"></span>
+        return `<div class="row-line">
           <span class="row-glyph">${s.symbol}</span>
           <span><span class="row-title">${esc(c.name)}</span><span class="row-sub">${c.job} · ${s.name}</span></span>
-          <span class="row-score"><b>${r.score}</b><span>${levelShort(r.score)}</span></span>
-        </summary><div class="detail">
-          <p class="tags">${me.name} ve ${s.name} · ${me.element} ile ${s.element}</p>
-          <p>${r.aspect.text}</p>
-        </div></details>`;
-      }).join('') : '<p class="muted" style="padding:16px;margin:0">Bu aramaya uyan kimse yok.</p>';
+          <span class="row-score">${levelShort(r.score)}</span>
+        </div>`;
+      }).join('') : '<p class="empty">Bu isimde kimse yok.</p>';
       $('celebMore').classList.toggle('hidden', list.length <= limit);
     };
-    ['celebSearch', 'celebGender', 'celebOrigin'].forEach((id) => $(id).addEventListener('input', () => { limit = 15; draw(); }));
-    $('celebMore').addEventListener('click', () => { limit += 15; draw(); });
+    $('celebSearch').addEventListener('input', () => { limit = 10; draw(); });
+    $('celebMore').addEventListener('click', () => { limit += 10; draw(); });
     draw();
   }
 
