@@ -106,7 +106,7 @@
     const overall = Math.round((scores.love + scores.work + scores.mood) / 3);
 
     return {
-      date, moonSign: A.signIndex(t.moon), house, houseInfo: H, aspects: aspects.slice(0, 4), scores, overall,
+      date, moonSign: A.signIndex(t.moon), house, houseInfo: H, houseFromAsc: !!chart.planets.asc, aspects: aspects.slice(0, 4), scores, overall,
       mercuryRetro: t.mercuryRetro
     };
   }
@@ -157,6 +157,12 @@
     return { elong, illum, name: PHASES.find((x) => elong < x.max).name, sign: A.signIndex(p.moon) };
   }
 
+  const RETRO_TEXT = {
+    mercury: ['Birkaç hafta boyunca yazışmalarda, imzalarda ve teknolojide dikkatli ol.', 'İletişimdeki aksaklıklar azalmaya başlar.'],
+    venus: ['İlişkilerde ve harcamalarda acele karar vermemek için iyi bir dönem; eski ilişkiler gündeme gelebilir.', 'Aşk ve para konularında işler yeniden akmaya başlar.'],
+    mars: ['Enerji içe döner; yeni kavgalara ve aceleci işlere girişme.', 'Ertelenen işlere yeniden başlamak için enerji geri gelir.']
+  };
+
   // f(h) işaret değiştirdiğinde ikiye bölme ile anı bul
   function refine(f, lo, hi) {
     let flo = f(lo);
@@ -172,9 +178,12 @@
     const base = new Date(start.getFullYear(), start.getMonth(), start.getDate());
     const events = [];
     const ref = chart.planets.asc ? chart.planets.asc.sign : chart.planets.sun.sign;
+    const houseWhere = chart.planets.asc ? 'Senin haritanda' : 'Güneş burcundan sayınca';
+    const seenIngress = {};
     const step = 6; // saat
+    const prevDay = posAt(base, -24);
+    const lastDaily = { mercury: prevDay.mercury, venus: prevDay.venus, mars: prevDay.mars };
     let prev = posAt(base, 0);
-    let prevMerc = posAt(base, -24).mercury;
     for (let h = step; h <= days * 24; h += step) {
       const cur = posAt(base, h);
       // Yeni ay ve dolunay
@@ -190,8 +199,8 @@
             date: dateAt(base, t), kind,
             title: kind === 'new' ? `Yeni ay, ${SIGNS[sign].name} burcunda` : `Dolunay, ${SIGNS[sign].name} burcunda`,
             text: kind === 'new'
-              ? `Senin ${house + 1}. evinde: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda yeni bir başlangıç için uygun bir zaman.`
-              : `Senin ${house + 1}. evinde: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda bir şeyler netleşebilir ya da tamamlanabilir.`
+              ? `${houseWhere} ${house + 1}. ev: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda yeni bir başlangıç için uygun bir zaman.`
+              : `${houseWhere} ${house + 1}. ev: ${HOUSES[house].theme.toLocaleLowerCase('tr')} konusunda bir şeyler netleşebilir ya da tamamlanabilir.`
           });
         }
       });
@@ -199,27 +208,31 @@
       ['sun', 'mercury', 'venus', 'mars'].forEach((k) => {
         const s1 = A.signIndex(prev[k]), s2 = A.signIndex(cur[k]);
         if (s1 !== s2) {
-          const boundary = (s2 === (s1 + 1) % 12 ? s2 : s1) * 30;
+          const forward = s2 === (s1 + 1) % 12;
+          const boundary = (forward ? s2 : s1) * 30;
           const t = refine((x) => wrap(posAt(base, x)[k] - boundary), h - step, h);
-          events.push({ date: dateAt(base, t), kind: 'ingress', title: `${TRANSIT[k].name} ${SIGNS[s2].name} burcuna geçiyor`, text: `${TRANSIT[k].area[0].toLocaleUpperCase('tr') + TRANSIT[k].area.slice(1)} konularında yeni bir dönem.` });
+          const first = !seenIngress[k];
+          seenIngress[k] = true;
+          events.push({
+            date: dateAt(base, t), kind: 'ingress',
+            title: forward ? `${TRANSIT[k].name} ${SIGNS[s2].name} burcuna geçiyor` : `${TRANSIT[k].name} geri hareketle ${SIGNS[s2].name} burcuna dönüyor`,
+            text: first ? `${TRANSIT[k].area[0].toLocaleUpperCase('tr') + TRANSIT[k].area.slice(1)} konularında yeni bir dönem.` : ''
+          });
         }
       });
-      // Merkür geri / düz
+      // Merkür, Venüs ve Mars: geri / düz hareket
       if (h % 24 === 0) {
-        const d1 = wrap(prev.mercury - prevMerc), d2 = wrap(cur.mercury - prev.mercury);
-        if ((d1 >= 0) !== (d2 >= 0)) {
-          // Hızın işaret değiştirdiği anı bul
-          const speed = (x) => wrap(posAt(base, x + 1).mercury - posAt(base, x).mercury);
-          const t = refine(speed, h - 48, h);
-          events.push(d2 < 0
-            ? { date: dateAt(base, t), kind: 'retro', title: 'Merkür geri harekete başlıyor', text: 'Yaklaşık üç hafta boyunca yazışmalarda, imzalarda ve teknolojide dikkatli ol.' }
-            : { date: dateAt(base, t), kind: 'retro', title: 'Merkür düz harekete dönüyor', text: 'İletişimdeki aksaklıklar azalmaya başlar.' });
-        }
-        prevMerc = prev.mercury;
-        prev = cur;
-      } else {
-        prev = cur;
+        ['mercury', 'venus', 'mars'].forEach((k) => {
+          const d1 = wrap(prev[k] - lastDaily[k]), d2 = wrap(cur[k] - prev[k]);
+          if ((d1 >= 0) !== (d2 >= 0)) {
+            const speed = (x) => wrap(posAt(base, x + 1)[k] - posAt(base, x)[k]);
+            const t = refine(speed, h - 48, h);
+            events.push({ date: dateAt(base, t), kind: 'retro', title: `${TRANSIT[k].name} ${d2 < 0 ? 'geri harekete başlıyor' : 'düz harekete dönüyor'}`, text: RETRO_TEXT[k][d2 < 0 ? 0 : 1] });
+          }
+          lastDaily[k] = prev[k];
+        });
       }
+      prev = cur;
     }
     return events.sort((a, b) => a.date - b.date);
   }

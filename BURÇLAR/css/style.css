@@ -217,11 +217,15 @@ form .btn { width: 100%; margin-top: 8px; }
 .wheel figcaption { text-align: center; }
 
 /* Davet ve çevre */
-.panel.invite { margin-top: 20px; }
 .panel.invite .share { margin-top: 12px; }
-#saveCircle { margin-top: 12px; }
-#saveCircle:disabled { opacity: .6; cursor: default; }
-.row-line .link-btn.row-title { padding: 0; color: var(--text); text-align: left; }
-.row-score .link-btn { margin-left: 10px; font-size: .85rem; }
+button.row-btn { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.row-btn:first-child { border-top: 0; }
+button.row-btn:hover { background: var(--accent-soft); }
+.circle-toggle { display: block; margin-left: auto; color: var(--accent); }
+.panel.invite { margin-top: 16px; }
 .streak { margin: 0 0 8px; }
 #inviteNote:not(.hidden) { margin: 0 0 16px; color: var(--text); }
+
+.table th, .table td { overflow-wrap: anywhere; }
+.more .table { table-layout: fixed; }
+.table thead th { white-space: normal; }
