@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Burç Uyumu</title>
+  <meta name="description" content="Doğum bilgilerine göre sana en uygun burçları sıralar ve aranızdaki uyumu açıklar.">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    try { var t = localStorage.getItem('burc-uyum-tema'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
+  </script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="./">Burç Uyumu</a>
+      <button class="link-btn" type="button" id="themeToggle">Koyu tema</button>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" id="formCard">
+      <h1>Doğum bilgilerin</h1>
+      <p class="muted">Doğum saatin ve yerin ne kadar doğruysa sonuç o kadar sana özel olur.</p>
+
+      <form id="birthForm" novalidate>
+        <div class="grid">
+          <label class="field">
+            <span>Adın <small>(isteğe bağlı)</small></span>
+            <input type="text" id="name" maxlength="40" autocomplete="given-name">
+          </label>
+
+          <div class="field">
+            <span>Cinsiyetin</span>
+            <div class="segmented" role="radiogroup">
+              <label><input type="radio" name="gender" value="kadin" checked><span>Kadın</span></label>
+              <label><input type="radio" name="gender" value="erkek"><span>Erkek</span></label>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Doğum tarihi</span>
+            <input type="date" id="birthDate" min="1900-01-01" required>
+          </label>
+
+          <div class="field">
+            <span>Doğum saati</span>
+            <input type="time" id="birthTime" value="12:00">
+            <label class="check"><input type="checkbox" id="timeUnknown"> Bilmiyorum</label>
+          </div>
+
+          <label class="field full">
+            <span>Doğum yeri</span>
+            <select id="birthPlace" required></select>
+          </label>
+
+          <div class="field full hidden" id="customPlace">
+            <div class="grid three">
+              <label class="field"><span>Enlem</span><input type="number" id="customLat" step="0.01" min="-90" max="90" placeholder="41.01"></label>
+              <label class="field"><span>Boylam</span><input type="number" id="customLon" step="0.01" min="-180" max="180" placeholder="28.98"></label>
+              <label class="field"><span>UTC farkı</span><input type="number" id="customTz" step="0.5" min="-12" max="14" placeholder="3"></label>
+            </div>
+            <small class="muted">UTC farkına doğduğun tarihte yaz saati uygulanıyorsa onu da ekle. Örneğin yazın Berlin için 2, kışın 1.</small>
+          </div>
+
+          <div class="field full">
+            <span>Kimlerle uyumuna bakalım?</span>
+            <div class="segmented" role="radiogroup">
+              <label><input type="radio" name="partner" value="erkek" checked><span>Erkekler</span></label>
+              <label><input type="radio" name="partner" value="kadin"><span>Kadınlar</span></label>
+            </div>
+          </div>
+
+          <details class="field full advanced">
+            <summary>Saat dilimi ayarı</summary>
+            <label class="field">
+              <select id="manualOffset"></select>
+              <small class="muted">Genelde dokunmana gerek yok. Türkiye için eski yaz/kış saati uygulaması otomatik hesaplanır.</small>
+            </label>
+          </details>
+        </div>
+
+        <p class="error" id="formError" role="alert"></p>
+        <button type="submit" class="btn">Hesapla</button>
+      </form>
+    </section>
+
+    <section id="results" class="hidden" aria-live="polite"></section>
+
+    <p class="footnote">Astrolojik geleneklere dayanır, eğlence amaçlıdır. Bir ilişkiyi burçlar değil, insanlar yürütür.</p>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/cities.js"></script>
+  <script src="js/astro.js"></script>
+  <script src="js/compat.js"></script>
+  <script src="js/horoscope.js"></script>
+  <script src="js/celebs.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
