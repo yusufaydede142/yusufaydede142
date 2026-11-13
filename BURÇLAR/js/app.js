@@ -28,6 +28,40 @@
   const todayLocal = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
   const todayISO = () => { const t = todayLocal(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
 
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Ekranın altında kısa bildirim
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // Sayıyı 0'dan hedefe doğru say
+  function countUp(el) {
+    const target = +el.dataset.count;
+    if (reduceMotion() || !target) { el.textContent = target; return; }
+    const start = performance.now(), dur = 700;
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // Listedeki satırlara sırayla görünme gecikmesi ver
+  function stagger(container) {
+    if (!container) return;
+    Array.from(container.children).forEach((el, i) => { el.style.setProperty('--i', Math.min(i, 12)); });
+    container.classList.remove('stagger');
+    void container.offsetWidth;
+    container.classList.add('stagger');
+  }
+
   const store = {
     get(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } },
     set(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* depolama yok */ } }
@@ -208,6 +242,15 @@
 
   /* ---------- Sonuç ekranı ---------- */
 
+  // Alt çubuktaki sade çizgi simgeler
+  const svgIcon = (d) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const TAB_ICONS = {
+    uyum: svgIcon('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
+    harita: svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5M12 15v5M4 12h5M15 12h5"/>'),
+    gunluk: svgIcon('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    partner: svgIcon('<circle cx="9" cy="9" r="3.2"/><circle cx="16" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M14.5 15.2c2.4-.4 4.6.9 5.5 3.8"/>')
+  };
+
   const TABS = [
     { key: 'uyum', label: 'Uyum' },
     { key: 'harita', label: 'Haritan' },
@@ -221,11 +264,11 @@
     const ctx = { input, chart, analysis };
     const out = $('results');
     out.innerHTML = renderSummary(ctx) +
-      `<nav class="tabs" role="tablist">${TABS.map((t, i) => `<button class="tab" type="button" role="tab" data-tab="${t.key}" aria-selected="${i === 0}">${t.label}</button>`).join('')}</nav>` +
-      `<div class="tab-panel" data-panel="uyum">${renderMatches(ctx)}</div>` +
-      `<div class="tab-panel hidden" data-panel="harita">${renderChart(ctx)}</div>` +
-      `<div class="tab-panel hidden" data-panel="gunluk">${renderDailyShell()}</div>` +
-      `<div class="tab-panel hidden" data-panel="partner">${renderPartnerForm(input)}</div>`;
+      `<nav class="tabs" role="tablist" aria-label="Bölümler">${TABS.map((t, i) => `<button class="tab" type="button" role="tab" id="tab-${t.key}" data-tab="${t.key}" aria-controls="panel-${t.key}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}"><span class="tab-ico" aria-hidden="true">${TAB_ICONS[t.key]}</span>${t.label}</button>`).join('')}</nav>` +
+      `<div class="tab-panel" role="tabpanel" id="panel-uyum" aria-labelledby="tab-uyum" data-panel="uyum">${renderMatches(ctx)}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-harita" aria-labelledby="tab-harita" data-panel="harita">${renderChart(ctx)}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-gunluk" aria-labelledby="tab-gunluk" data-panel="gunluk">${renderDailyShell()}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-partner" aria-labelledby="tab-partner" data-panel="partner">${renderPartnerForm(input)}</div>`;
     $('formCard').classList.add('hidden');
     out.classList.remove('hidden');
 
@@ -236,20 +279,69 @@
       $('formCard').classList.remove('hidden');
       $('formCard').scrollIntoView({ behavior: 'smooth' });
     });
-    out.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
-      out.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
-      out.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
-    }));
+    setupTabs(out);
+    $('todayLink').addEventListener('click', () => showTab('gunluk'));
     bindMatches(ctx);
     bindDaily(ctx);
     bindPartner(ctx);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    out.classList.remove('reveal'); void out.offsetWidth; out.classList.add('reveal');
+    stagger($('matchList'));
+    window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
     if (invite) openInvite(ctx);
   }
 
   function showTab(key) {
     const t = document.querySelector(`.tab[data-tab="${key}"]`);
     if (t) t.click();
+  }
+
+  // Sekme değişimi: yön bilgisiyle kayan geçiş, ok tuşları ve parmakla kaydırma
+  function setupTabs(out) {
+    const tabs = Array.from(out.querySelectorAll('.tab'));
+    const select = (t, focus) => {
+      const prev = tabs.findIndex((x) => x.getAttribute('aria-selected') === 'true');
+      const next = tabs.indexOf(t);
+      tabs.forEach((x) => { x.setAttribute('aria-selected', String(x === t)); x.tabIndex = x === t ? 0 : -1; });
+      out.querySelectorAll('.tab-panel').forEach((p) => {
+        const on = p.dataset.panel === t.dataset.tab;
+        p.classList.toggle('hidden', !on);
+        if (on && prev !== next) {
+          p.classList.remove('enter-left', 'enter-right');
+          void p.offsetWidth;
+          p.classList.add(next > prev ? 'enter-right' : 'enter-left');
+        }
+      });
+      if (focus) t.focus();
+      if (prev !== next) {
+        const top = out.querySelector('.tabs').getBoundingClientRect().top;
+        if (top < 0) window.scrollTo({ top: window.scrollY + top - 8, behavior: reduceMotion() ? 'auto' : 'smooth' });
+      }
+    };
+    tabs.forEach((t) => {
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const i = tabs.indexOf(t);
+        const map = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 };
+        if (!(e.key in map)) return;
+        e.preventDefault();
+        select(tabs[(map[e.key] + tabs.length) % tabs.length], true);
+      });
+    });
+    // Telefonda sağa/sola kaydırarak sekme değiştir
+    let sx = 0, sy = 0, skip = false;
+    out.addEventListener('touchstart', (e) => {
+      const el = e.target;
+      skip = !!el.closest('input, select, textarea, .table, svg, .tabs');
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    out.addEventListener('touchend', (e) => {
+      if (skip) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const i = tabs.findIndex((x) => x.getAttribute('aria-selected') === 'true');
+      const j = i + (dx < 0 ? 1 : -1);
+      if (j >= 0 && j < tabs.length) select(tabs[j]);
+    }, { passive: true });
   }
 
   // Davetle gelindiyse davet edeni karşılaştır sekmesinde göster
@@ -278,10 +370,13 @@
     let notes = '';
     if (chart.cusp) notes += `<p class="note">Güneş burç sınırına çok yakın; ${SIGNS[chart.cusp.other].name} özellikleri de sende görülebilir.</p>`;
     if (!input.timeKnown) notes += '<p class="note">Doğum saati olmadan yükselen burç hesaplanamaz. Sonuçlar öğle saatine göre hesaplandı.</p>';
+    const today = window.Horoscope.daily(chart, todayLocal());
+    const todayBtn = `<button class="today" type="button" id="todayLink"><span class="today-label">Bugün</span><span>${today.houseInfo.theme}</span><span class="today-go" aria-hidden="true">›</span></button>`;
     return `<div class="summary">
       <h1><span class="glyph">${sun.symbol}</span>${input.name ? esc(input.name) + ', ' : ''}${sun.name} ${input.gender === 'erkek' ? 'erkeğisin' : 'kadınısın'}</h1>
       <p class="muted">${parts.join(' · ')}<br>${date}, ${time}, ${esc(input.place.name)}</p>
       ${notes}
+      ${todayBtn}
       <button class="btn quiet" type="button" id="editBtn">Bilgileri değiştir</button>
     </div>`;
   }
@@ -356,6 +451,7 @@
       mode = document.querySelector('input[name="matchMode"]:checked').value;
       const data = mode === 'love' ? ctx.analysis.ranking : ctx.analysis.friendRanking;
       list.innerHTML = matchRows(data, mode, ctx.input.partner);
+      stagger(list);
       $('matchIntro').textContent = mode === 'love'
         ? `Sana en uygun ${plural(ctx.input.partner)} burçları, yukarıdan aşağıya. Ayrıntı için birine dokun.`
         : 'Arkadaş olarak en iyi anlaşabileceğin burçlar.';
@@ -470,7 +566,7 @@
       const [x1, y1] = pt(P.asc.lon, R4), [x2, y2] = pt(P.asc.lon, R1 + 2);
       svg += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="w-axis"/>`;
     }
-    return `<figure class="wheel"><svg viewBox="0 0 320 320" role="img" aria-label="Doğum haritası çizimi">${svg}</svg>
+    return `<figure class="wheel"><svg class="draw" viewBox="0 0 320 320" role="img" aria-label="Doğum haritası çizimi">${svg}</svg>
       <figcaption class="small-note">${P.asc ? 'Soldaki çizgi yükselen burcun.' : 'Doğum saati olmadığı için yükselen gösterilmiyor.'}${missing.length ? ` ${missing.join(' ve ')} o gün burç değiştirdiği için çizilmedi.` : ''}${aspectCount ? ' İçteki düz çizgiler uyumlu, kesikli çizgiler gerilimli açıları gösterir.' : ''}</figcaption></figure>`;
   }
 
@@ -567,7 +663,9 @@
     const show = () => {
       const mode = document.querySelector('input[name="dayMode"]:checked').value;
       const t = todayLocal();
-      $('horoContent').innerHTML = mode === 'sky' ? renderSky(chart) : mode === 'week'
+      const box = $('horoContent');
+      box.classList.remove('fade'); void box.offsetWidth; box.classList.add('fade');
+      box.innerHTML = mode === 'sky' ? renderSky(chart) : mode === 'week'
         ? renderWeek(window.Horoscope.weekly(chart, t))
         : `<div class="panel">${renderDay(window.Horoscope.daily(chart, mode === 'tomorrow' ? new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1) : t))}
            <p class="small-note">Gezegenlerin o günkü gerçek konumları senin doğum haritanla karşılaştırılarak hesaplandı.</p></div>`;
@@ -580,18 +678,17 @@
 
   function renderPartnerForm(input) {
     const pg = input.partner;
-    return `<div class="panel invite">
-      <h2>Arkadaşını davet et</h2>
-      <p class="muted">Bağlantıyı açan kişi sadece kendi bilgilerini girer ve ikinizin uyumunu hemen görür.</p>
-      <div class="share" id="shareInvite">
-        <button class="btn quiet" type="button" data-act="wa">WhatsApp'ta gönder</button>
-        <button class="btn quiet" type="button" data-act="copy">Bağlantıyı kopyala</button>
-        <span class="share-msg" aria-live="polite"></span>
+    return `<div class="panel">
+      <h2>Biriyle karşılaştır</h2>
+      <div class="invite">
+        <p><b>En kolayı:</b> arkadaşına bir bağlantı gönder. Açınca sadece kendi bilgilerini girer ve ikinizin uyumunu hemen görür.</p>
+        <div class="share" id="shareInvite">
+          <button class="btn" type="button" data-act="wa">WhatsApp'ta gönder</button>
+          <button class="btn quiet" type="button" data-act="copy">Bağlantıyı kopyala</button>
+        </div>
+        <p class="small-note">Bağlantı doğum tarihini, saatini ve şehrini içerir. Sadece güvendiğin kişilere gönder.</p>
       </div>
-      <p class="small-note">Bağlantı doğum tarihini, saatini ve şehrini içerir. Sadece güvendiğin kişilere gönder.</p>
-    </div>
-    <div class="panel">
-      <h2>Ya da bilgilerini kendin gir</h2>
+      <h3 class="or">Ya da bilgilerini sen gir</h3>
       <p class="muted">Sevgilinin, eşinin ya da merak ettiğin birinin doğum bilgilerini gir.</p>
       <form id="partnerForm" novalidate>
         <div class="grid">
@@ -672,6 +769,9 @@
     const chartB = window.Astro.computeChart(pInput);
     const syn = window.Compat.synastry(ctx.chart, chartB);
     $('synResult').innerHTML = renderSynastry(ctx.input, ctx.chart, pInput, chartB, syn);
+    $('synResult').querySelectorAll('[data-count]').forEach(countUp);
+    const panel = $('synResult').firstElementChild;
+    if (panel) { panel.classList.add('pop'); }
     bindShare('shareSyn', () => shareTextForSynastry(ctx.input, ctx.chart, pInput, chartB, syn), () => cardForSynastry(ctx.input, ctx.chart, pInput, chartB, syn));
     const rec = inputToRecord(pInput);
     const btn = $('circleToggle');
@@ -683,7 +783,8 @@
         const list = store.get(CIRCLE_KEY) || [];
         list.splice(idx, 1);
         store.set(CIRCLE_KEY, list);
-      } else addToCircle(rec);
+        toast('Çevrenden çıkarıldı');
+      } else { addToCircle(rec); toast('Çevrene eklendi'); }
       label();
       renderCircle(ctx);
     });
@@ -727,7 +828,8 @@
         <li>Birbiriyle en uyumlu ikili: <b>${esc(best.a.label)} ve ${esc(best.b.label)}</b> (${best.score})</li>
         <li>En çok emek isteyen ikili: <b>${esc(worst.a.label)} ve ${esc(worst.b.label)}</b> (${worst.score})</li></ul>`;
     }
-    box.innerHTML = `<h2>Çevren</h2><p class="muted">Kaydettiğin kişilerle uyumun. Ayrıntı için birine dokun.</p><div class="list">${rows}</div>${pairs}`;
+    box.innerHTML = `<h2>Çevren</h2><p class="muted">Kaydettiğin kişilerle uyumun. Ayrıntı için birine dokun.</p><div class="list" id="circleList">${rows}</div>${pairs}`;
+    stagger($('circleList'));
     box.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => showSynastry(ctx, withMe[+b.dataset.open].p.inp)));
   }
 
@@ -746,7 +848,7 @@
     return `<div class="panel">
       <div class="pair-head">
         <div><h2>${nameA} ve ${nameB}</h2><p class="muted">${sa.symbol} ${sa.name} · ${sb.symbol} ${sb.name}</p></div>
-        <div class="pair-score"><div class="big-score">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span>
+        <div class="pair-score"><div class="big-score" data-count="${syn.score}">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span>
           <button class="link-btn circle-toggle" type="button" id="circleToggle">Çevreme ekle</button></div>
       </div>
       ${!inA.timeKnown || !inB.timeKnown ? '<p class="note">Doğum saatlerinden biri bilinmediği için Ay ve yükselenle ilgili açılar hesaba katılmadı.</p>' : ''}
@@ -809,14 +911,12 @@
       <button class="btn quiet" type="button" data-act="wa">WhatsApp'ta paylaş</button>
       <button class="btn quiet" type="button" data-act="copy">Kopyala</button>
       ${withImage ? '<button class="btn quiet" type="button" data-act="img">Görsel olarak kaydet</button>' : ''}
-      <span class="share-msg" aria-live="polite"></span>
     </div>`;
   }
 
   function bindShare(id, getText, getCard) {
     const bar = $(id);
-    const msg = bar.querySelector('.share-msg');
-    const say = (t) => { msg.textContent = t; setTimeout(() => { msg.textContent = ''; }, 2500); };
+    const say = toast;
     bar.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
@@ -824,7 +924,7 @@
       const text = getText();
       if (btn.dataset.act === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
       if (btn.dataset.act === 'copy') {
-        const done = () => say('Kopyalandı');
+        const done = () => say(id === 'shareInvite' ? 'Bağlantı kopyalandı' : 'Kopyalandı');
         if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
         else fallbackCopy(text, done);
       }
@@ -939,6 +1039,36 @@
     label();
   }
 
+  // Ana ekrana ekleme (destekleyen tarayıcılarda)
+  function setupInstall() {
+    let deferred = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferred = e;
+      $('installBtn').classList.remove('hidden');
+    });
+    $('installBtn').addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      await deferred.userChoice.catch(() => null);
+      deferred = null;
+      $('installBtn').classList.add('hidden');
+    });
+    window.addEventListener('appinstalled', () => { $('installBtn').classList.add('hidden'); toast('Ana ekrana eklendi'); });
+  }
+
+  function setupWipe() {
+    $('wipeBtn').addEventListener('click', () => {
+      if (!window.confirm('Bu cihazdaki doğum bilgilerin, çevren ve ayarların silinsin mi?')) return;
+      try {
+        Object.keys(localStorage).filter((k) => k.startsWith('burc-uyum')).forEach((k) => localStorage.removeItem(k));
+      } catch (e) { /* depolama yok */ }
+      location.href = location.href.split('#')[0];
+    });
+  }
+
   setupTheme();
+  setupInstall();
+  setupWipe();
   setupForm();
 })();
