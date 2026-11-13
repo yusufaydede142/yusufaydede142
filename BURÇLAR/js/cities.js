@@ -23,7 +23,26 @@
     ['Tekirdağ', 40.98, 27.51], ['Tokat', 40.31, 36.55], ['Trabzon', 41.00, 39.72], ['Tunceli', 39.11, 39.55],
     ['Uşak', 38.68, 29.41], ['Van', 38.49, 43.38], ['Yalova', 40.66, 29.27], ['Yozgat', 39.82, 34.81],
     ['Zonguldak', 41.45, 31.79]
-  ].map(([name, lat, lon]) => ({ name, country: 'Türkiye', lat, lon, tz: 'TR' }));
+  ].map(([name, lat, lon]) => ({ name, country: 'Türkiye', lat, lon, tz: 'TR', zone: 'Europe/Istanbul' }));
+
+  // IANA saat dilimi adları: tarayıcı bunlarla tarihî yaz/kış saati kayıtlarını bilir
+  const ZONES = {
+    'Lefkoşa': 'Asia/Nicosia', 'Bakü': 'Asia/Baku', 'Tiflis': 'Asia/Tbilisi',
+    'Berlin': 'Europe/Berlin', 'Hamburg': 'Europe/Berlin', 'Köln': 'Europe/Berlin', 'Frankfurt': 'Europe/Berlin',
+    'Münih': 'Europe/Berlin', 'Stuttgart': 'Europe/Berlin', 'Düsseldorf': 'Europe/Berlin',
+    'Amsterdam': 'Europe/Amsterdam', 'Rotterdam': 'Europe/Amsterdam', 'Brüksel': 'Europe/Brussels',
+    'Paris': 'Europe/Paris', 'Lyon': 'Europe/Paris', 'Viyana': 'Europe/Vienna', 'Zürih': 'Europe/Zurich',
+    'Stockholm': 'Europe/Stockholm', 'Kopenhag': 'Europe/Copenhagen', 'Oslo': 'Europe/Oslo', 'Londra': 'Europe/London',
+    'Roma': 'Europe/Rome', 'Milano': 'Europe/Rome', 'Madrid': 'Europe/Madrid', 'Atina': 'Europe/Athens',
+    'Selanik': 'Europe/Athens', 'Sofya': 'Europe/Sofia', 'Bükreş': 'Europe/Bucharest', 'Üsküp': 'Europe/Skopje',
+    'Saraybosna': 'Europe/Sarajevo', 'Priştine': 'Europe/Belgrade', 'Tiran': 'Europe/Tirane', 'Kiev': 'Europe/Kiev',
+    'Moskova': 'Europe/Moscow', 'Taşkent': 'Asia/Tashkent', 'Aşkabat': 'Asia/Ashgabat', 'Bişkek': 'Asia/Bishkek',
+    'Dubai': 'Asia/Dubai', 'Riyad': 'Asia/Riyadh', 'Doha': 'Asia/Qatar', 'Bağdat': 'Asia/Baghdad', 'Erbil': 'Asia/Baghdad',
+    'Tahran': 'Asia/Tehran', 'Kahire': 'Africa/Cairo', 'Beyrut': 'Asia/Beirut', 'Amman': 'Asia/Amman',
+    'New York': 'America/New_York', 'Chicago': 'America/Chicago', 'Los Angeles': 'America/Los_Angeles',
+    'Houston': 'America/Chicago', 'Toronto': 'America/Toronto', 'Montreal': 'America/Toronto',
+    'Sidney': 'Australia/Sydney', 'Melbourne': 'Australia/Melbourne', 'Tokyo': 'Asia/Tokyo', 'Seul': 'Asia/Seoul'
+  };
 
   const WORLD = [
     ['Lefkoşa', 'KKTC', 35.19, 33.36, 2, 'EU'], ['Bakü', 'Azerbaycan', 40.41, 49.87, 4, 'NONE'],
@@ -54,7 +73,7 @@
     ['Toronto', 'Kanada', 43.65, -79.38, -5, 'US'], ['Montreal', 'Kanada', 45.50, -73.57, -5, 'US'],
     ['Sidney', 'Avustralya', -33.87, 151.21, 10, 'AU'], ['Melbourne', 'Avustralya', -37.81, 144.96, 10, 'AU'],
     ['Tokyo', 'Japonya', 35.68, 139.69, 9, 'NONE'], ['Seul', 'Güney Kore', 37.57, 126.98, 9, 'NONE']
-  ].map(([name, country, lat, lon, tz, dst]) => ({ name, country, lat, lon, tz, dst }));
+  ].map(([name, country, lat, lon, tz, dst]) => ({ name, country, lat, lon, tz, dst, zone: ZONES[name] }));
 
   const collator = (a, b) => a.name.localeCompare(b.name, 'tr');
   global.Cities = { turkey: TR.sort(collator), world: WORLD.sort(collator) };

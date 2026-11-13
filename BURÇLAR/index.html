@@ -5,7 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Burç Uyumu</title>
   <meta name="description" content="Doğum bilgilerine göre sana en uygun burçları sıralar ve aranızdaki uyumu açıklar.">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="tr_TR">
+  <meta property="og:site_name" content="Burç Uyumu">
+  <meta property="og:title" content="Benimle burç uyumuna bak">
+  <meta property="og:description" content="Doğum bilgilerini gir, ikimizin uyumunu hemen gör.">
+  <meta property="og:image" content="https://yusufaydede142.github.io/yusufaydede142/BUR%C3%87LAR/icons/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:url" content="https://yusufaydede142.github.io/yusufaydede142/BUR%C3%87LAR/">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta name="theme-color" content="#3b3a8f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Burç Uyumu">
   <script>
     try { var t = localStorage.getItem('burc-uyum-tema'); if (t) document.documentElement.setAttribute('data-theme', t); } catch (e) {}
   </script>
@@ -14,12 +30,16 @@
   <header class="topbar">
     <div class="wrap topbar-inner">
       <a class="brand" href="./">Burç Uyumu</a>
-      <button class="link-btn" type="button" id="themeToggle">Koyu tema</button>
+      <div class="top-actions">
+        <button class="link-btn hidden" type="button" id="installBtn">Yükle</button>
+        <button class="link-btn" type="button" id="themeToggle">Koyu tema</button>
+      </div>
     </div>
   </header>
 
   <main class="wrap">
     <section class="panel" id="formCard">
+      <p class="note hidden" id="inviteNote"></p>
       <h1>Doğum bilgilerin</h1>
       <p class="muted">Doğum saatin ve yerin ne kadar doğruysa sonuç o kadar sana özel olur.</p>
 
@@ -82,13 +102,27 @@
 
         <p class="error" id="formError" role="alert"></p>
         <button type="submit" class="btn">Hesapla</button>
+        <button type="button" class="btn quiet hidden cancel" id="cancelEdit">Vazgeç, sonuçlara dön</button>
       </form>
     </section>
 
     <section id="results" class="hidden" aria-live="polite"></section>
 
-    <p class="footnote">Astrolojik geleneklere dayanır, eğlence amaçlıdır. Bir ilişkiyi burçlar değil, insanlar yürütür.</p>
+    <footer class="footnote">
+      <p>Astrolojik geleneklere dayanır, eğlence amaçlıdır. Bir ilişkiyi burçlar değil, insanlar yürütür.</p>
+      <details class="foot-more">
+        <summary>Uygulama olarak yükle</summary>
+        <p>Android'de Chrome menüsünden “Ana ekrana ekle”yi, iPhone'da Safari'de Paylaş düğmesinden “Ana Ekrana Ekle”yi seç. Bir kez açtıktan sonra internetsiz de çalışır.</p>
+      </details>
+      <details class="foot-more">
+        <summary>Gizlilik</summary>
+        <p>Girdiğin bilgiler hiçbir sunucuya gönderilmez; sadece bu cihazda saklanır.</p>
+        <button class="btn quiet" type="button" id="wipeBtn">Bu cihazdaki bilgilerimi sil</button>
+      </details>
+    </footer>
   </main>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/data.js"></script>
   <script src="js/cities.js"></script>
@@ -97,5 +131,10 @@
   <script src="js/horoscope.js"></script>
   <script src="js/celebs.js"></script>
   <script src="js/app.js"></script>
+  <script>
+    if ('serviceWorker' in navigator && location.protocol === 'https:') {
+      navigator.serviceWorker.register('sw.js').catch(function () {});
+    }
+  </script>
 </body>
 </html>

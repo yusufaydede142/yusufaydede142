@@ -167,7 +167,6 @@ form .btn { width: 100%; margin-top: 8px; }
 .table td small { display: block; color: var(--muted); }
 
 .share { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 20px; }
-.share-msg { font-size: .9rem; color: var(--muted); }
 
 .big-score { font-size: 2.2rem; font-weight: 700; color: var(--accent); line-height: 1; }
 .pair-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 12px; }
@@ -202,3 +201,112 @@ form .btn { width: 100%; margin-top: 8px; }
   .tab-panel { display: block !important; }
   body { background: #fff; }
 }
+
+/* Doğum haritası çizimi */
+.wheel { margin: 8px auto 16px; max-width: 360px; }
+.wheel svg { width: 100%; height: auto; display: block; color: var(--text); }
+.w-line { fill: none; stroke: var(--line); stroke-width: 1; }
+.w-sign { fill: var(--muted); font-size: 15px; text-anchor: middle; dominant-baseline: central; }
+.w-planet { fill: var(--accent); font-size: 18px; text-anchor: middle; dominant-baseline: central; }
+.w-tick { stroke: var(--accent); stroke-width: 1.5; }
+.w-axis { stroke: var(--text); stroke-width: 1.2; }
+.w-label { fill: var(--text); font-size: 11px; font-weight: 600; }
+.w-asp { stroke: var(--accent); stroke-width: 1; opacity: .55; }
+.w-asp.hard { stroke: var(--muted); stroke-dasharray: 4 3; }
+.wheel figcaption { text-align: center; }
+
+/* Davet ve çevre */
+.invite .share { margin-top: 4px; }
+.invite .btn { padding: 9px 14px; font-size: .92rem; }
+h3.or { margin-top: 28px; padding-top: 20px; border-top: 1px solid var(--line); }
+button.row-btn { width: 100%; background: none; border: 0; border-top: 1px solid var(--line); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+button.row-btn:first-child { border-top: 0; }
+button.row-btn:hover { background: var(--accent-soft); }
+.circle-toggle { display: block; margin-left: auto; color: var(--accent); }
+.streak { margin: 0 0 8px; }
+#inviteNote:not(.hidden) { margin: 0 0 16px; color: var(--text); }
+
+.table th, .table td { overflow-wrap: anywhere; }
+.more .table { table-layout: fixed; }
+.table thead th { white-space: normal; }
+
+/* ---------- Üst çubuk ---------- */
+.top-actions { display: flex; gap: 16px; }
+.topbar { position: sticky; top: 0; z-index: 20; }
+
+/* ---------- Bugün kısayolu ---------- */
+.today {
+  display: flex; align-items: center; gap: 10px; width: 100%; margin: 12px 0 12px; padding: 12px 14px;
+  background: var(--accent-soft); border: 0; border-radius: var(--radius); color: var(--text); font: inherit; text-align: left; cursor: pointer;
+}
+.today-label { font-size: .8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
+.today-go { margin-left: auto; color: var(--accent); font-size: 1.3rem; line-height: 1; }
+
+/* ---------- Sekme simgeleri (yalnız telefonda görünür) ---------- */
+.tab-ico { display: none; }
+
+/* ---------- Bildirim ---------- */
+.toast {
+  position: fixed; left: 50%; bottom: 24px; z-index: 50; max-width: calc(100% - 32px);
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-size: .92rem;
+  transition: opacity .2s, transform .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* ---------- Alt bilgi ---------- */
+.footnote p { margin: 0 0 12px; }
+.foot-more { margin: 8px auto 0; max-width: 520px; text-align: left; }
+.foot-more summary { cursor: pointer; text-align: center; }
+.foot-more[open] summary { margin-bottom: 8px; }
+.foot-more .btn { display: block; margin: 0 auto; }
+
+/* ---------- Geçişler ve animasyonlar ---------- */
+body, .panel, .topbar, .list, input, select, .segmented span { transition: background-color .25s, color .25s, border-color .25s; }
+.btn, .tab, .row > summary, button.row-btn { transition: background-color .15s, color .15s, opacity .15s, transform .1s; }
+.btn:active, .today:active, button.row-btn:active { transform: scale(.98); }
+
+@keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideFromRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes slideFromLeft { from { opacity: 0; transform: translateX(-24px); } to { opacity: 1; transform: none; } }
+@keyframes pop { from { opacity: 0; transform: scale(.97); } to { opacity: 1; transform: none; } }
+@keyframes draw { from { stroke-dashoffset: var(--len, 1000); } to { stroke-dashoffset: 0; } }
+
+#results.reveal .summary { animation: fadeUp .4s ease-out both; }
+#formCard:not(.hidden) { animation: fadeUp .35s ease-out both; }
+.tab-panel.enter-right { animation: slideFromRight .28s ease-out both; }
+.tab-panel.enter-left { animation: slideFromLeft .28s ease-out both; }
+.stagger > * { animation: fadeUp .3s ease-out both; animation-delay: calc(var(--i, 0) * 25ms); }
+.row[open] > .detail, .more[open] > :not(summary), .foot-more[open] > :not(summary) { animation: fadeUp .25s ease-out both; }
+#horoContent.fade, #synResult .pop { animation: pop .3s ease-out both; }
+.wheel .draw .w-line { stroke-dasharray: 1000; animation: draw .8s ease-out both; }
+.wheel .draw text, .wheel .draw .w-asp, .wheel .draw .w-tick, .wheel .draw .w-axis { animation: fadeIn .4s .3s ease-out both; }
+
+/* ---------- Telefonda alt sekme çubuğu ---------- */
+@media (max-width: 640px) {
+  .tabs {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; margin: 0; gap: 0;
+    background: var(--surface); border-top: 1px solid var(--line); border-bottom: 0;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom)); overflow: visible;
+  }
+  .tab {
+    flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    border-bottom: 0; margin: 0; padding: 6px 2px; font-size: .72rem;
+  }
+  .tab-ico { display: block; line-height: 0; }
+  .tab[aria-selected="true"] { color: var(--accent); }
+  body:has(#results:not(.hidden)) { padding-bottom: 76px; }
+  .toast { bottom: 88px; }
+  .topbar { position: static; }
+  html { scroll-padding-bottom: 96px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+
+/* Masaüstünde sekme odak çerçevesi kırpılmasın */
+.tab:focus-visible { outline-offset: -3px; border-radius: 6px; }
+.small-note.center { text-align: center; margin-top: 0; }
+form .btn.cancel { margin-top: 10px; }

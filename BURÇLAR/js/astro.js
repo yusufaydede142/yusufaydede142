@@ -62,7 +62,27 @@
     return 2 + dstOffset('EU', y, m, d, hour);
   }
 
+  // Tarayıcının IANA saat dilimi veritabanından, verilen andaki UTC farkı (saat)
+  function zoneOffsetAt(zone, t) {
+    const f = new Intl.DateTimeFormat('en-US', {
+      timeZone: zone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    const p = {};
+    f.formatToParts(new Date(t)).forEach((x) => { p[x.type] = x.value; });
+    return (Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour % 24, +p.minute, +p.second) - t) / 3600000;
+  }
+
+  // Yerel duvar saatine karşılık gelen UTC farkı
+  function zoneOffset(zone, y, m, d, hour) {
+    const local = Date.UTC(y, m - 1, d, Math.floor(hour), Math.round((hour % 1) * 60));
+    const first = zoneOffsetAt(zone, local);
+    return zoneOffsetAt(zone, local - first * 3600000);
+  }
+
   function utcOffsetFor(place, y, m, d, hour) {
+    if (place.zone && typeof Intl !== 'undefined') {
+      try { return zoneOffset(place.zone, y, m, d, hour); } catch (e) { /* eski tarayıcı: aşağıdaki kurallar */ }
+    }
     if (place.tz === 'TR') return turkeyOffset(y, m, d, hour);
     return place.tz + dstOffset(place.dst || 'NONE', y, m, d, hour);
   }

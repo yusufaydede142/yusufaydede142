@@ -5,6 +5,9 @@
   const $ = (id) => document.getElementById(id);
   const STORAGE_KEY = 'burc-uyum-son-giris';
   const PARTNER_KEY = 'burc-uyum-partner';
+  const CIRCLE_KEY = 'burc-uyum-cevrem';
+  const VISIT_KEY = 'burc-uyum-ziyaret';
+  let invite = null; // davet bağlantısıyla gelen kişi
 
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const genderWord = (g) => (g === 'erkek' ? 'erkeği' : 'kadını');
@@ -24,6 +27,40 @@
   const fmtDay = (d) => `${d.getDate()} ${MONTHS[d.getMonth()]} ${DAYS[d.getDay()]}`;
   const todayLocal = () => { const n = new Date(); return new Date(n.getFullYear(), n.getMonth(), n.getDate()); };
   const todayISO = () => { const t = todayLocal(); return `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`; };
+
+  const reduceMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // Ekranın altında kısa bildirim
+  let toastTimer = null;
+  function toast(msg) {
+    const t = $('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+  }
+
+  // Sayıyı 0'dan hedefe doğru say
+  function countUp(el) {
+    const target = +el.dataset.count;
+    if (reduceMotion() || !target) { el.textContent = target; return; }
+    const start = performance.now(), dur = 700;
+    const step = (now) => {
+      const k = Math.min(1, (now - start) / dur);
+      el.textContent = Math.round(target * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // Listedeki satırlara sırayla görünme gecikmesi ver
+  function stagger(container) {
+    if (!container) return;
+    Array.from(container.children).forEach((el, i) => { el.style.setProperty('--i', Math.min(i, 12)); });
+    container.classList.remove('stagger');
+    void container.offsetWidth;
+    container.classList.add('stagger');
+  }
 
   const store = {
     get(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch (e) { return null; } },
@@ -85,10 +122,74 @@
     return { year, month, day, hour, minute, timeKnown, place };
   }
 
+  /* ---------- Kişi kaydı ve davet bağlantısı ---------- */
+
+  // Kayıt: { name, gender, date: 'YYYY-MM-DD', time: 'HH:MM' | '', place: şehir adı | null, lat, lon, tz }
+  function placeKeyByName(name) {
+    let i = window.Cities.turkey.findIndex((c) => c.name === name);
+    if (i >= 0) return 'tr:' + i;
+    i = window.Cities.world.findIndex((c) => c.name === name);
+    return i >= 0 ? 'w:' + i : '';
+  }
+
+  function recordToInput(r) {
+    if (!r || !/^\d{4}-\d{2}-\d{2}$/.test(r.date || '') || r.date < '1900-01-01' || r.date > todayISO()) return null;
+    const [year, month, day] = r.date.split('-').map(Number);
+    const timeKnown = /^\d{2}:\d{2}$/.test(r.time || '');
+    const [hour, minute] = timeKnown ? r.time.split(':').map(Number) : [12, 0];
+    let place = null;
+    if (r.place) {
+      const key = placeKeyByName(r.place);
+      place = key.startsWith('tr:') ? window.Cities.turkey[+key.slice(3)] : key.startsWith('w:') ? window.Cities.world[+key.slice(2)] : null;
+    } else if ([r.lat, r.lon, r.tz].every((v) => typeof v === 'number' && !Number.isNaN(v))) {
+      place = { name: `${r.lat.toFixed(2)}°, ${r.lon.toFixed(2)}°`, lat: r.lat, lon: r.lon, tz: r.tz, dst: 'NONE' };
+    }
+    if (!place) return null;
+    return { name: String(r.name || '').replace(/[<>]/g, '').slice(0, 40), gender: r.gender === 'erkek' ? 'erkek' : 'kadin', year, month, day, hour, minute, timeKnown, place };
+  }
+
+  function inputToRecord(inp) {
+    const pad = (n) => String(n).padStart(2, '0');
+    const rec = {
+      name: inp.name || '', gender: inp.gender,
+      date: `${inp.year}-${pad(inp.month)}-${pad(inp.day)}`,
+      time: inp.timeKnown ? `${pad(inp.hour)}:${pad(inp.minute)}` : ''
+    };
+    if (placeKeyByName(inp.place.name)) rec.place = inp.place.name;
+    else Object.assign(rec, { lat: inp.place.lat, lon: inp.place.lon, tz: inp.place.tz });
+    return rec;
+  }
+
+  const b64encode = (obj) => btoa(unescape(encodeURIComponent(JSON.stringify(obj)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  function b64decode(str) {
+    try { return JSON.parse(decodeURIComponent(escape(atob(str.replace(/-/g, '+').replace(/_/g, '/'))))); } catch (e) { return null; }
+  }
+
+  function inviteLink(input) {
+    return location.href.split('#')[0] + '#davet=' + b64encode(inputToRecord(input));
+  }
+
+  function readInvite() {
+    const m = location.hash.match(/davet=([A-Za-z0-9_-]+)/);
+    if (!m) return;
+    const rec = b64decode(m[1]);
+    const inp = recordToInput(rec);
+    if (!inp) {
+      $('inviteNote').textContent = 'Davet bağlantısı açılamadı. Bağlantının tamamını kopyaladığından emin ol.';
+      $('inviteNote').classList.remove('hidden');
+      return;
+    }
+    invite = { rec, inp };
+    const who = inp.name ? esc(inp.name) : 'Bir arkadaşın';
+    $('inviteNote').innerHTML = `<b>${who}</b> seni davet etti. Kendi bilgilerini gir; ikinizin uyumu hemen gösterilecek.`;
+    $('inviteNote').classList.remove('hidden');
+  }
+
   /* ---------- Ana form ---------- */
 
   function setupForm() {
     buildPlaceOptions($('birthPlace'));
+    readInvite();
     const off = $('manualOffset');
     off.appendChild(new Option('Otomatik', ''));
     for (let h = -12; h <= 14; h += 0.5) {
@@ -141,6 +242,15 @@
 
   /* ---------- Sonuç ekranı ---------- */
 
+  // Alt çubuktaki sade çizgi simgeler
+  const svgIcon = (d) => `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const TAB_ICONS = {
+    uyum: svgIcon('<path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/>'),
+    harita: svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/><path d="M12 4v5M12 15v5M4 12h5M15 12h5"/>'),
+    gunluk: svgIcon('<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>'),
+    partner: svgIcon('<circle cx="9" cy="9" r="3.2"/><circle cx="16" cy="10" r="2.6"/><path d="M3.5 19c.8-3 3-4.6 5.5-4.6s4.7 1.6 5.5 4.6M14.5 15.2c2.4-.4 4.6.9 5.5 3.8"/>')
+  };
+
   const TABS = [
     { key: 'uyum', label: 'Uyum' },
     { key: 'harita', label: 'Haritan' },
@@ -154,29 +264,103 @@
     const ctx = { input, chart, analysis };
     const out = $('results');
     out.innerHTML = renderSummary(ctx) +
-      `<nav class="tabs" role="tablist">${TABS.map((t, i) => `<button class="tab" type="button" role="tab" data-tab="${t.key}" aria-selected="${i === 0}">${t.label}</button>`).join('')}</nav>` +
-      `<div class="tab-panel" data-panel="uyum">${renderMatches(ctx)}</div>` +
-      `<div class="tab-panel hidden" data-panel="harita">${renderChart(ctx)}</div>` +
-      `<div class="tab-panel hidden" data-panel="gunluk">${renderDailyShell()}</div>` +
-      `<div class="tab-panel hidden" data-panel="partner">${renderPartnerForm(input)}</div>`;
+      `<nav class="tabs" role="tablist" aria-label="Bölümler">${TABS.map((t, i) => `<button class="tab" type="button" role="tab" id="tab-${t.key}" data-tab="${t.key}" aria-controls="panel-${t.key}" aria-selected="${i === 0}" tabindex="${i === 0 ? 0 : -1}"><span class="tab-ico" aria-hidden="true">${TAB_ICONS[t.key]}</span>${t.label}</button>`).join('')}</nav>` +
+      `<div class="tab-panel" role="tabpanel" id="panel-uyum" aria-labelledby="tab-uyum" data-panel="uyum">${renderMatches(ctx)}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-harita" aria-labelledby="tab-harita" data-panel="harita">${renderChart(ctx)}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-gunluk" aria-labelledby="tab-gunluk" data-panel="gunluk">${renderDailyShell()}</div>` +
+      `<div class="tab-panel hidden" role="tabpanel" id="panel-partner" aria-labelledby="tab-partner" data-panel="partner">${renderPartnerForm(input)}</div>`;
     $('formCard').classList.add('hidden');
     out.classList.remove('hidden');
 
     $('editBtn').addEventListener('click', () => {
-      const saved = store.get(STORAGE_KEY);
-      if (saved) store.set(STORAGE_KEY, Object.assign(saved, { shown: false }));
       out.classList.add('hidden');
       $('formCard').classList.remove('hidden');
-      $('formCard').scrollIntoView({ behavior: 'smooth' });
+      $('cancelEdit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
     });
-    out.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => {
-      out.querySelectorAll('.tab').forEach((x) => x.setAttribute('aria-selected', String(x === t)));
-      out.querySelectorAll('.tab-panel').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== t.dataset.tab));
-    }));
+    $('cancelEdit').onclick = () => {
+      $('formCard').classList.add('hidden');
+      $('cancelEdit').classList.add('hidden');
+      out.classList.remove('hidden');
+      window.scrollTo({ top: 0 });
+    };
+    setupTabs(out);
+    $('todayLink').addEventListener('click', () => showTab('gunluk'));
     bindMatches(ctx);
     bindDaily(ctx);
     bindPartner(ctx);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    out.classList.remove('reveal'); void out.offsetWidth; out.classList.add('reveal');
+    stagger($('matchList'));
+    window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
+    if (invite) openInvite(ctx);
+  }
+
+  function showTab(key) {
+    const t = document.querySelector(`.tab[data-tab="${key}"]`);
+    if (t) t.click();
+  }
+
+  // Sekme değişimi: yön bilgisiyle kayan geçiş, ok tuşları ve parmakla kaydırma
+  function setupTabs(out) {
+    const tabs = Array.from(out.querySelectorAll('.tab'));
+    const select = (t, focus) => {
+      const prev = tabs.findIndex((x) => x.getAttribute('aria-selected') === 'true');
+      const next = tabs.indexOf(t);
+      tabs.forEach((x) => { x.setAttribute('aria-selected', String(x === t)); x.tabIndex = x === t ? 0 : -1; });
+      out.querySelectorAll('.tab-panel').forEach((p) => {
+        const on = p.dataset.panel === t.dataset.tab;
+        p.classList.toggle('hidden', !on);
+        if (on && prev !== next) {
+          p.classList.remove('enter-left', 'enter-right');
+          void p.offsetWidth;
+          p.classList.add(next > prev ? 'enter-right' : 'enter-left');
+        }
+      });
+      if (focus) t.focus();
+      if (prev !== next) {
+        const mobile = window.matchMedia('(max-width: 640px)').matches;
+        const anchor = mobile ? out.querySelector(`.tab-panel[data-panel="${t.dataset.tab}"]`) : out.querySelector('.tabs');
+        const top = anchor.getBoundingClientRect().top - (mobile ? 64 : 8);
+        if (top < 0) window.scrollTo({ top: window.scrollY + top, behavior: 'auto' });
+      }
+    };
+    tabs.forEach((t) => {
+      t.addEventListener('click', () => select(t));
+      t.addEventListener('keydown', (e) => {
+        const i = tabs.indexOf(t);
+        const map = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 };
+        if (!(e.key in map)) return;
+        e.preventDefault();
+        select(tabs[(map[e.key] + tabs.length) % tabs.length], true);
+      });
+    });
+    // Telefonda sağa/sola kaydırarak sekme değiştir
+    let sx = 0, sy = 0, skip = false;
+    out.addEventListener('touchstart', (e) => {
+      const el = e.target;
+      skip = !!el.closest('input, select, textarea, .table, svg, .tabs');
+      sx = e.touches[0].clientX; sy = e.touches[0].clientY;
+    }, { passive: true });
+    out.addEventListener('touchend', (e) => {
+      if (skip) return;
+      const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+      if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const i = tabs.findIndex((x) => x.getAttribute('aria-selected') === 'true');
+      const j = i + (dx < 0 ? 1 : -1);
+      if (j >= 0 && j < tabs.length) select(tabs[j]);
+    }, { passive: true });
+  }
+
+  // Davetle gelindiyse davet edeni karşılaştır sekmesinde göster
+  function openInvite(ctx) {
+    const inv = invite;
+    invite = null;
+    $('inviteNote').classList.add('hidden');
+    try { history.replaceState(null, '', location.href.split('#')[0]); } catch (e) { /* dosyadan açılınca olmayabilir */ }
+    addToCircle(inputToRecord(inv.inp));
+    showTab('partner');
+    showSynastry(ctx, inv.inp);
+    renderCircle(ctx);
   }
 
   function signLabel(chart, key) {
@@ -193,10 +377,13 @@
     let notes = '';
     if (chart.cusp) notes += `<p class="note">Güneş burç sınırına çok yakın; ${SIGNS[chart.cusp.other].name} özellikleri de sende görülebilir.</p>`;
     if (!input.timeKnown) notes += '<p class="note">Doğum saati olmadan yükselen burç hesaplanamaz. Sonuçlar öğle saatine göre hesaplandı.</p>';
+    const today = window.Horoscope.daily(chart, todayLocal());
+    const todayBtn = `<button class="today" type="button" id="todayLink"><span class="today-label">Bugün</span><span>${today.houseInfo.theme}</span><span class="today-go" aria-hidden="true">›</span></button>`;
     return `<div class="summary">
       <h1><span class="glyph">${sun.symbol}</span>${input.name ? esc(input.name) + ', ' : ''}${sun.name} ${input.gender === 'erkek' ? 'erkeğisin' : 'kadınısın'}</h1>
       <p class="muted">${parts.join(' · ')}<br>${date}, ${time}, ${esc(input.place.name)}</p>
       ${notes}
+      ${todayBtn}
       <button class="btn quiet" type="button" id="editBtn">Bilgileri değiştir</button>
     </div>`;
   }
@@ -213,7 +400,7 @@
       <p class="muted" id="matchIntro">Sana en uygun ${plural(pg)} burçları, yukarıdan aşağıya. Ayrıntı için birine dokun.</p>
       <div class="list" id="matchList">${matchRows(analysis.ranking, 'love', pg)}</div>
       <p class="small-note">Sıralama yalnızca Güneş burcuna değil; Ay${chart.planets.asc ? ', yükselen' : ''}, Venüs ve Mars konumlarına da bakılarak yapıldı.</p>
-      ${shareBar('shareMatches')}
+      ${shareBar('shareMatches', true)}
       <details class="more">
         <summary>Ünlülerle uyumun</summary>
         ${renderCelebShell()}
@@ -271,13 +458,14 @@
       mode = document.querySelector('input[name="matchMode"]:checked').value;
       const data = mode === 'love' ? ctx.analysis.ranking : ctx.analysis.friendRanking;
       list.innerHTML = matchRows(data, mode, ctx.input.partner);
+      stagger(list);
       $('matchIntro').textContent = mode === 'love'
         ? `Sana en uygun ${plural(ctx.input.partner)} burçları, yukarıdan aşağıya. Ayrıntı için birine dokun.`
         : 'Arkadaş olarak en iyi anlaşabileceğin burçlar.';
       bindRows();
     }));
     bindRows();
-    bindShare('shareMatches', () => shareTextForResults(ctx));
+    bindShare('shareMatches', () => shareTextForResults(ctx), () => cardForResults(ctx));
     bindCelebs(ctx);
   }
 
@@ -320,6 +508,8 @@
     return `
       <div class="panel">
         <h2>Doğum haritan</h2>
+        ${chartWheel(chart)}
+        <p class="small-note center">Doğum yerinin o tarihteki saat dilimi kullanıldı: UTC${chart.utcOffset >= 0 ? '+' : ''}${chart.utcOffset}.</p>
         <table class="table"><tbody>${rows}</tbody></table>
       </div>
       <div class="panel">
@@ -339,6 +529,55 @@
       </div>`;
   }
 
+  // Sade doğum haritası çizimi (SVG). Yükselen biliniyorsa sola, bilinmiyorsa Koç sola gelir.
+  function chartWheel(chart) {
+    const P = chart.planets;
+    const ref = P.asc ? P.asc.lon : 0;
+    const C = 160, R1 = 150, R2 = 118, R3 = 96, R4 = 70;
+    const pt = (lon, r) => {
+      const a = (180 + lon - ref) * Math.PI / 180;
+      return [C + r * Math.cos(a), C - r * Math.sin(a)];
+    };
+    const f = (n) => n.toFixed(1);
+    let svg = `<circle cx="${C}" cy="${C}" r="${R1}" class="w-line"/><circle cx="${C}" cy="${C}" r="${R2}" class="w-line"/><circle cx="${C}" cy="${C}" r="${R4}" class="w-line"/>`;
+    for (let i = 0; i < 12; i++) {
+      const [x1, y1] = pt(i * 30, R2), [x2, y2] = pt(i * 30, R1), [tx, ty] = pt(i * 30 + 15, (R1 + R2) / 2);
+      svg += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="w-line"/>`;
+      svg += `<text x="${f(tx)}" y="${f(ty)}" class="w-sign">${SIGNS[i].symbol}</text>`;
+    }
+    const glyph = { sun: '☉', moon: '☽', mercury: '☿', venus: '♀', mars: '♂' };
+    const keys = Object.keys(glyph).filter((k) => !chart.uncertain[k]);
+    const missing = Object.keys(glyph).filter((k) => chart.uncertain[k]).map((k) => PLANET_LABELS[k].name);
+    let aspectCount = 0;
+    // Açı çizgileri (iç çember)
+    for (let i = 0; i < keys.length; i++) {
+      for (let j = i + 1; j < keys.length; j++) {
+        let d = Math.abs(P[keys[i]].lon - P[keys[j]].lon) % 360; if (d > 180) d = 360 - d;
+        const asp = [[60, 5, 'soft'], [90, 6, 'hard'], [120, 7, 'soft'], [180, 7, 'hard']].find(([a, o]) => Math.abs(d - a) <= o);
+        if (!asp) continue;
+        const [x1, y1] = pt(P[keys[i]].lon, R4), [x2, y2] = pt(P[keys[j]].lon, R4);
+        svg += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="w-asp ${asp[2]}"/>`;
+        aspectCount++;
+      }
+    }
+    // Gezegenler; birbirine çok yakın olanlar içe kaydırılır
+    const placed = [];
+    keys.slice().sort((a, b) => P[a].lon - P[b].lon).forEach((k) => {
+      let r = R3 - 8;
+      while (placed.some((q) => Math.abs(((P[k].lon - q.lon + 540) % 360) - 180) < 9 && q.r === r)) r -= 16;
+      placed.push({ lon: P[k].lon, r });
+      const [x, y] = pt(P[k].lon, r), [mx, my] = pt(P[k].lon, R2), [nx, ny] = pt(P[k].lon, R2 - 6);
+      svg += `<line x1="${f(mx)}" y1="${f(my)}" x2="${f(nx)}" y2="${f(ny)}" class="w-tick"/>`;
+      svg += `<text x="${f(x)}" y="${f(y)}" class="w-planet"><title>${PLANET_LABELS[k].name} ${SIGNS[P[k].sign].name}</title>${glyph[k]}︎</text>`;
+    });
+    if (P.asc) {
+      const [x1, y1] = pt(P.asc.lon, R4), [x2, y2] = pt(P.asc.lon, R1 + 2);
+      svg += `<line x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}" class="w-axis"/>`;
+    }
+    return `<figure class="wheel"><svg class="draw" viewBox="0 0 320 320" role="img" aria-label="Doğum haritası çizimi">${svg}</svg>
+      <figcaption class="small-note">${P.asc ? 'Soldaki çizgi yükselen burcun.' : 'Doğum saati olmadığı için yükselen gösterilmiyor.'}${missing.length ? ` ${missing.join(' ve ')} o gün burç değiştirdiği için çizilmedi.` : ''}${aspectCount ? ' İçteki düz çizgiler uyumlu, kesikli çizgiler gerilimli açıları gösterir.' : ''}</figcaption></figure>`;
+  }
+
   /* ---------- Günlük sekmesi ---------- */
 
   function renderDailyShell() {
@@ -346,8 +585,10 @@
       <div class="segmented inline-seg" role="radiogroup">
         <label><input type="radio" name="dayMode" value="today" checked><span>Bugün</span></label>
         <label><input type="radio" name="dayMode" value="tomorrow"><span>Yarın</span></label>
-        <label><input type="radio" name="dayMode" value="week"><span>Bu hafta</span></label>
+        <label><input type="radio" name="dayMode" value="week"><span>Hafta</span></label>
+        <label><input type="radio" name="dayMode" value="sky"><span>Takvim</span></label>
       </div>
+      <p class="small-note streak hidden" id="streakNote"></p>
       <div id="horoContent"></div>`;
   }
 
@@ -359,7 +600,7 @@
   function renderDay(d) {
     const ms = SIGNS[d.moonSign];
     return `<h2>${fmtDay(d.date)}</h2>
-      <p class="muted">Ay ${ms.name} burcunda, senin ${d.house + 1}. evinde.</p>
+      <p class="muted">Ay ${ms.name} burcunda; ${d.houseFromAsc ? 'senin' : 'Güneş burcundan sayınca'} ${d.house + 1}. evinde.</p>
       <h3>${d.houseInfo.theme}</h3>
       <p>${d.houseInfo.text}</p>
       ${d.mercuryRetro ? '<p class="note">Merkür geri hareket ediyor. Yazışmalarda, imzalarda ve alışverişte biraz daha dikkatli ol.</p>' : ''}
@@ -389,11 +630,50 @@
       </div>`;
   }
 
+  function renderSky(chart) {
+    const now = new Date();
+    const ph = window.Horoscope.moonPhase(now);
+    const events = window.Horoscope.skyCalendar(chart, todayLocal(), 30);
+    const hm = (d) => `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    const rows = events.map((e) => `<li><b>${fmtDay(e.date)}${e.kind === 'new' || e.kind === 'full' ? ', ' + hm(e.date) : ''}</b><br>${e.title}.${e.text ? ` <span class="muted">${e.text}</span>` : ''}</li>`).join('');
+    return `<div class="panel">
+        <h2>Bugün Ay</h2>
+        <p>${ph.name}, yüzde ${ph.illum} aydınlık. Ay şu an ${SIGNS[ph.sign].name} burcunda.</p>
+        <h3>Önümüzdeki 30 gün</h3>
+        <ul class="plain">${rows}</ul>
+        <p class="small-note">Saatler senin cihazının saat dilimine göre.</p>
+      </div>`;
+  }
+
+  // Üst üste kaç gündür bakıldığını say
+  function updateStreak() {
+    const today = todayISO();
+    const v = store.get(VISIT_KEY) || {};
+    if (v.last !== today) {
+      const y = todayLocal(); y.setDate(y.getDate() - 1);
+      const yISO = `${y.getFullYear()}-${String(y.getMonth() + 1).padStart(2, '0')}-${String(y.getDate()).padStart(2, '0')}`;
+      v.streak = v.last === yISO ? (v.streak || 1) + 1 : 1;
+      v.last = today;
+      store.set(VISIT_KEY, v);
+    }
+    return v.streak || 1;
+  }
+
   function bindDaily({ chart }) {
+    const tab = document.querySelector('.tab[data-tab="gunluk"]');
+    tab.addEventListener('click', () => {
+      const streak = updateStreak();
+      if (streak >= 2) {
+        $('streakNote').textContent = `${streak} gündür üst üste bakıyorsun.`;
+        $('streakNote').classList.remove('hidden');
+      }
+    }, { once: true });
     const show = () => {
       const mode = document.querySelector('input[name="dayMode"]:checked').value;
       const t = todayLocal();
-      $('horoContent').innerHTML = mode === 'week'
+      const box = $('horoContent');
+      box.classList.remove('fade'); void box.offsetWidth; box.classList.add('fade');
+      box.innerHTML = mode === 'sky' ? renderSky(chart) : mode === 'week'
         ? renderWeek(window.Horoscope.weekly(chart, t))
         : `<div class="panel">${renderDay(window.Horoscope.daily(chart, mode === 'tomorrow' ? new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1) : t))}
            <p class="small-note">Gezegenlerin o günkü gerçek konumları senin doğum haritanla karşılaştırılarak hesaplandı.</p></div>`;
@@ -408,6 +688,15 @@
     const pg = input.partner;
     return `<div class="panel">
       <h2>Biriyle karşılaştır</h2>
+      <div class="invite">
+        <p><b>En kolayı:</b> arkadaşına bir bağlantı gönder. Açınca sadece kendi bilgilerini girer ve ikinizin uyumunu hemen görür.</p>
+        <div class="share" id="shareInvite">
+          <button class="btn" type="button" data-act="wa">WhatsApp'ta gönder</button>
+          <button class="btn quiet" type="button" data-act="copy">Bağlantıyı kopyala</button>
+        </div>
+        <p class="small-note">Bağlantı doğum tarihini, saatini ve şehrini içerir. Sadece güvendiğin kişilere gönder.</p>
+      </div>
+      <h3 class="or">Ya da bilgilerini sen gir</h3>
       <p class="muted">Sevgilinin, eşinin ya da merak ettiğin birinin doğum bilgilerini gir.</p>
       <form id="partnerForm" novalidate>
         <div class="grid">
@@ -432,7 +721,8 @@
         <button type="submit" class="btn">Karşılaştır</button>
       </form>
     </div>
-    <div id="synResult"></div>`;
+    <div id="synResult"></div>
+    <div class="panel hidden" id="circlePanel"></div>`;
   }
 
   function bindPartner(ctx) {
@@ -463,12 +753,92 @@
         name: pInput.name, gender: pInput.gender, date: $('pBirthDate').value, time: $('pBirthTime').value, unknown: !pInput.timeKnown,
         place: $('pBirthPlace').value, lat: $('pCustomLat').value, lon: $('pCustomLon').value, tz: $('pCustomTz').value
       });
-      const chartB = window.Astro.computeChart(pInput);
-      const syn = window.Compat.synastry(ctx.chart, chartB);
-      $('synResult').innerHTML = renderSynastry(ctx.input, ctx.chart, pInput, chartB, syn);
-      bindShare('shareSyn', () => shareTextForSynastry(ctx.input, ctx.chart, pInput, chartB, syn));
-      $('synResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      showSynastry(ctx, pInput);
     });
+    bindShare('shareInvite', () => `Benimle burç uyumuna bak: ${inviteLink(ctx.input)}`);
+    renderCircle(ctx);
+  }
+
+  function fillPartnerForm(inp) {
+    const pad = (n) => String(n).padStart(2, '0');
+    $('pName').value = inp.name || '';
+    const g = document.querySelector(`input[name="pGender"][value="${inp.gender}"]`); if (g) g.checked = true;
+    $('pBirthDate').value = `${inp.year}-${pad(inp.month)}-${pad(inp.day)}`;
+    $('pTimeUnknown').checked = !inp.timeKnown; $('pBirthTime').disabled = !inp.timeKnown;
+    $('pBirthTime').value = inp.timeKnown ? `${pad(inp.hour)}:${pad(inp.minute)}` : '12:00';
+    const key = placeKeyByName(inp.place.name);
+    $('pBirthPlace').value = key || 'custom';
+    $('pCustomPlace').classList.toggle('hidden', !!key);
+    if (!key) { $('pCustomLat').value = inp.place.lat; $('pCustomLon').value = inp.place.lon; $('pCustomTz').value = inp.place.tz; }
+  }
+
+  function showSynastry(ctx, pInput) {
+    fillPartnerForm(pInput);
+    const chartB = window.Astro.computeChart(pInput);
+    const syn = window.Compat.synastry(ctx.chart, chartB);
+    $('synResult').innerHTML = renderSynastry(ctx.input, ctx.chart, pInput, chartB, syn);
+    $('synResult').querySelectorAll('[data-count]').forEach(countUp);
+    const panel = $('synResult').firstElementChild;
+    if (panel) { panel.classList.add('pop'); }
+    bindShare('shareSyn', () => shareTextForSynastry(ctx.input, ctx.chart, pInput, chartB, syn), () => cardForSynastry(ctx.input, ctx.chart, pInput, chartB, syn));
+    const rec = inputToRecord(pInput);
+    const btn = $('circleToggle');
+    const label = () => { btn.textContent = circleIndex(rec) >= 0 ? 'Çevrenden çıkar' : 'Çevreme ekle'; };
+    btn.addEventListener('click', () => {
+      const idx = circleIndex(rec);
+      if (idx >= 0) {
+        if (!window.confirm(`${pInput.name || 'Bu kişi'} çevrenden çıkarılsın mı?`)) return;
+        const list = store.get(CIRCLE_KEY) || [];
+        list.splice(idx, 1);
+        store.set(CIRCLE_KEY, list);
+        toast('Çevrenden çıkarıldı');
+      } else { addToCircle(rec); toast('Çevrene eklendi'); }
+      label();
+      renderCircle(ctx);
+    });
+    label();
+    $('synResult').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // Aynı kişi: aynı ad ve doğum tarihi
+  function circleIndex(rec) {
+    return (store.get(CIRCLE_KEY) || []).findIndex((r) => r.name === rec.name && r.date === rec.date);
+  }
+
+  function addToCircle(rec) {
+    if (circleIndex(rec) >= 0) return;
+    const list = store.get(CIRCLE_KEY) || [];
+    list.push(rec);
+    store.set(CIRCLE_KEY, list.slice(-30));
+  }
+
+  // Kaydedilen kişilerle uyum listesi ve grubun en uyumlu ikilisi
+  function renderCircle(ctx) {
+    const box = $('circlePanel');
+    const list = (store.get(CIRCLE_KEY) || []).map((r) => recordToInput(r)).filter(Boolean);
+    box.classList.toggle('hidden', !list.length);
+    if (!list.length) { box.innerHTML = ''; return; }
+    const people = list.map((inp, i) => ({ inp, chart: window.Astro.computeChart(inp), label: inp.name || `Kişi ${i + 1}` }));
+    const withMe = people.map((p) => ({ p, score: window.Compat.synastry(ctx.chart, p.chart).score })).sort((a, b) => b.score - a.score);
+    const rows = withMe.map(({ p, score }, n) => `<button class="row-line row-btn" type="button" data-open="${n}">
+        <span class="row-glyph">${SIGNS[p.chart.planets.sun.sign].symbol}</span>
+        <span><span class="row-title">${esc(p.label)}</span><span class="row-sub">${SIGNS[p.chart.planets.sun.sign].name}</span></span>
+        <span class="row-score">${score}</span>
+      </button>`).join('');
+    // Grup içindeki (sen hariç) en uyumlu ve en zor ikili
+    let pairs = '';
+    if (people.length >= 3) {
+      const scored = [];
+      for (let a = 0; a < people.length; a++) for (let b = a + 1; b < people.length; b++) scored.push({ a: people[a], b: people[b], score: window.Compat.synastry(people[a].chart, people[b].chart).score });
+      scored.sort((x, y) => y.score - x.score);
+      const best = scored[0], worst = scored[scored.length - 1];
+      pairs = `<h3>Çevrende</h3><ul class="plain">
+        <li>Birbiriyle en uyumlu ikili: <b>${esc(best.a.label)} ve ${esc(best.b.label)}</b> (${best.score})</li>
+        <li>En çok emek isteyen ikili: <b>${esc(worst.a.label)} ve ${esc(worst.b.label)}</b> (${worst.score})</li></ul>`;
+    }
+    box.innerHTML = `<h2>Çevren</h2><p class="muted">Kaydettiğin kişilerle uyumun. Ayrıntı için birine dokun.</p><div class="list" id="circleList">${rows}</div>${pairs}`;
+    stagger($('circleList'));
+    box.querySelectorAll('[data-open]').forEach((b) => b.addEventListener('click', () => showSynastry(ctx, withMe[+b.dataset.open].p.inp)));
   }
 
   function renderSynastry(inA, A, inB, B, syn) {
@@ -486,7 +856,8 @@
     return `<div class="panel">
       <div class="pair-head">
         <div><h2>${nameA} ve ${nameB}</h2><p class="muted">${sa.symbol} ${sa.name} · ${sb.symbol} ${sb.name}</p></div>
-        <div class="pair-score"><div class="big-score">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span></div>
+        <div class="pair-score"><div class="big-score" data-count="${syn.score}">${syn.score}</div><span class="muted">${levelShort(syn.score)}</span>
+          <button class="link-btn circle-toggle" type="button" id="circleToggle">Çevreme ekle</button></div>
       </div>
       ${!inA.timeKnown || !inB.timeKnown ? '<p class="note">Doğum saatlerinden biri bilinmediği için Ay ve yükselenle ilgili açılar hesaba katılmadı.</p>' : ''}
       <p>${catSentence(syn.categories, 'İlişkinizin')}</p>
@@ -506,7 +877,7 @@
 
       <h3>Öneri</h3>
       <p>${sp.aspect.advice} ${adviceForElements(sa.element, sb.element)}</p>
-      ${shareBar('shareSyn')}
+      ${shareBar('shareSyn', true)}
     </div>`;
   }
 
@@ -543,28 +914,100 @@
 
   /* ---------- Paylaşım ---------- */
 
-  function shareBar(id) {
+  function shareBar(id, withImage) {
     return `<div class="share" id="${id}">
       <button class="btn quiet" type="button" data-act="wa">WhatsApp'ta paylaş</button>
       <button class="btn quiet" type="button" data-act="copy">Kopyala</button>
-      <span class="share-msg" aria-live="polite"></span>
+      ${withImage ? '<button class="btn quiet" type="button" data-act="img">Görsel olarak kaydet</button>' : ''}
     </div>`;
   }
 
-  function bindShare(id, getText) {
+  function bindShare(id, getText, getCard) {
     const bar = $(id);
-    const msg = bar.querySelector('.share-msg');
+    const say = toast;
     bar.addEventListener('click', (e) => {
       const btn = e.target.closest('button');
       if (!btn) return;
+      if (btn.dataset.act === 'img' && getCard) { saveCard(getCard(), say); return; }
       const text = getText();
       if (btn.dataset.act === 'wa') window.open('https://wa.me/?text=' + encodeURIComponent(text), '_blank', 'noopener');
       if (btn.dataset.act === 'copy') {
-        const done = () => { msg.textContent = 'Kopyalandı'; setTimeout(() => { msg.textContent = ''; }, 2000); };
+        const done = () => say(id === 'shareInvite' ? 'Bağlantı kopyalandı' : 'Kopyalandı');
         if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
         else fallbackCopy(text, done);
       }
     });
+  }
+
+  /* ---------- Paylaşılabilir görsel ---------- */
+
+  function drawCard(lines) {
+    // lines: [{ text, size, weight, color, gap }]
+    const W = 1080, H = 1350, pad = 96;
+    const cv = document.createElement('canvas');
+    cv.width = W; cv.height = H;
+    const g = cv.getContext('2d');
+    const font = 'system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif';
+    g.fillStyle = '#f7f6f2'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#3b3a8f'; g.fillRect(pad, pad, 72, 8);
+    let y = pad + 60;
+    lines.forEach((l) => {
+      let size = l.size;
+      g.font = `${l.weight || 400} ${size}px ${font}`;
+      while (g.measureText(l.text).width > W - pad * 2 && size > 24) {
+        size -= 2;
+        g.font = `${l.weight || 400} ${size}px ${font}`;
+      }
+      g.fillStyle = l.color || '#1d1c1a';
+      y += (l.gap || 0) + size;
+      g.fillText(l.text, pad, y);
+      y += size * 0.35;
+    });
+    g.font = `400 30px ${font}`; g.fillStyle = '#6c6862';
+    g.fillText('Burç Uyumu', pad, H - pad);
+    return cv;
+  }
+
+  function saveCard(cv, say) {
+    cv.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], 'burc-uyumu.png', { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'Burç Uyumu' }).catch(() => {});
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'burc-uyumu.png';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+      say('Görsel indirildi');
+    }, 'image/png');
+  }
+
+  function cardForResults({ input, chart, analysis }) {
+    const s = SIGNS[chart.planets.sun.sign];
+    const lines = [
+      { text: `${input.name ? input.name + ', ' : ''}${s.name} ${input.gender === 'erkek' ? 'erkeği' : 'kadını'}`, size: 64, weight: 700 },
+      { text: `Ay ${signLabel(chart, 'moon')}${chart.planets.asc ? ' · Yükselen ' + SIGNS[chart.planets.asc.sign].name : ''}`, size: 36, color: '#6c6862' },
+      { text: `Bana en uygun ${plural(input.partner)} burçları`, size: 40, weight: 600, gap: 90 }
+    ];
+    analysis.ranking.slice(0, 3).forEach((r, i) => {
+      lines.push({ text: `${i + 1}.  ${SIGNS[r.sign].symbol} ${SIGNS[r.sign].name}`, size: 72, weight: 700, color: '#3b3a8f', gap: i ? 24 : 40 });
+    });
+    return drawCard(lines);
+  }
+
+  function cardForSynastry(inA, A, inB, B, syn) {
+    const sa = SIGNS[A.planets.sun.sign], sb = SIGNS[B.planets.sun.sign];
+    return drawCard([
+      { text: `${inA.name || 'Ben'} ${sa.symbol}`, size: 72, weight: 700 },
+      { text: 've', size: 40, color: '#6c6862' },
+      { text: `${inB.name || 'O'} ${sb.symbol}`, size: 72, weight: 700 },
+      { text: `${sa.name} · ${sb.name}`, size: 36, color: '#6c6862', gap: 10 },
+      { text: String(syn.score), size: 220, weight: 700, color: '#3b3a8f', gap: 120 },
+      { text: levelShort(syn.score), size: 52, weight: 600 }
+    ]);
   }
 
   function fallbackCopy(text, done) {
@@ -604,6 +1047,36 @@
     label();
   }
 
+  // Ana ekrana ekleme (destekleyen tarayıcılarda)
+  function setupInstall() {
+    let deferred = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferred = e;
+      $('installBtn').classList.remove('hidden');
+    });
+    $('installBtn').addEventListener('click', async () => {
+      if (!deferred) return;
+      deferred.prompt();
+      await deferred.userChoice.catch(() => null);
+      deferred = null;
+      $('installBtn').classList.add('hidden');
+    });
+    window.addEventListener('appinstalled', () => { $('installBtn').classList.add('hidden'); toast('Ana ekrana eklendi'); });
+  }
+
+  function setupWipe() {
+    $('wipeBtn').addEventListener('click', () => {
+      if (!window.confirm('Bu cihazdaki doğum bilgilerin, çevren ve ayarların silinsin mi?')) return;
+      try {
+        Object.keys(localStorage).filter((k) => k.startsWith('burc-uyum')).forEach((k) => localStorage.removeItem(k));
+      } catch (e) { /* depolama yok */ }
+      location.href = location.href.split('#')[0];
+    });
+  }
+
   setupTheme();
+  setupInstall();
+  setupWipe();
   setupForm();
 })();
