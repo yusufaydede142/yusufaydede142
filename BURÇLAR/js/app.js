@@ -273,12 +273,17 @@
     out.classList.remove('hidden');
 
     $('editBtn').addEventListener('click', () => {
-      const saved = store.get(STORAGE_KEY);
-      if (saved) store.set(STORAGE_KEY, Object.assign(saved, { shown: false }));
       out.classList.add('hidden');
       $('formCard').classList.remove('hidden');
-      $('formCard').scrollIntoView({ behavior: 'smooth' });
+      $('cancelEdit').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: reduceMotion() ? 'auto' : 'smooth' });
     });
+    $('cancelEdit').onclick = () => {
+      $('formCard').classList.add('hidden');
+      $('cancelEdit').classList.add('hidden');
+      out.classList.remove('hidden');
+      window.scrollTo({ top: 0 });
+    };
     setupTabs(out);
     $('todayLink').addEventListener('click', () => showTab('gunluk'));
     bindMatches(ctx);
@@ -313,8 +318,10 @@
       });
       if (focus) t.focus();
       if (prev !== next) {
-        const top = out.querySelector('.tabs').getBoundingClientRect().top;
-        if (top < 0) window.scrollTo({ top: window.scrollY + top - 8, behavior: reduceMotion() ? 'auto' : 'smooth' });
+        const mobile = window.matchMedia('(max-width: 640px)').matches;
+        const anchor = mobile ? out.querySelector(`.tab-panel[data-panel="${t.dataset.tab}"]`) : out.querySelector('.tabs');
+        const top = anchor.getBoundingClientRect().top - (mobile ? 64 : 8);
+        if (top < 0) window.scrollTo({ top: window.scrollY + top, behavior: 'auto' });
       }
     };
     tabs.forEach((t) => {
@@ -502,6 +509,7 @@
       <div class="panel">
         <h2>Doğum haritan</h2>
         ${chartWheel(chart)}
+        <p class="small-note center">Doğum yerinin o tarihteki saat dilimi kullanıldı: UTC${chart.utcOffset >= 0 ? '+' : ''}${chart.utcOffset}.</p>
         <table class="table"><tbody>${rows}</tbody></table>
       </div>
       <div class="panel">

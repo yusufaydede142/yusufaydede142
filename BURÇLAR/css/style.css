@@ -240,8 +240,7 @@ button.row-btn:hover { background: var(--accent-soft); }
   background: var(--accent-soft); border: 0; border-radius: var(--radius); color: var(--text); font: inherit; text-align: left; cursor: pointer;
 }
 .today-label { font-size: .8rem; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: .04em; }
-.today-go { margin-left: auto; color: var(--accent); font-size: 1.3rem; line-height: 1; transition: transform .2s; }
-.today:hover .today-go { transform: translateX(3px); }
+.today-go { margin-left: auto; color: var(--accent); font-size: 1.3rem; line-height: 1; }
 
 /* ---------- Sekme simgeleri (yalnız telefonda görünür) ---------- */
 .tab-ico { display: none; }
@@ -275,19 +274,14 @@ body, .panel, .topbar, .list, input, select, .segmented span { transition: backg
 @keyframes draw { from { stroke-dashoffset: var(--len, 1000); } to { stroke-dashoffset: 0; } }
 
 #results.reveal .summary { animation: fadeUp .4s ease-out both; }
-#results.reveal .tabs { animation: fadeIn .4s .1s ease-out both; }
 #formCard:not(.hidden) { animation: fadeUp .35s ease-out both; }
 .tab-panel.enter-right { animation: slideFromRight .28s ease-out both; }
 .tab-panel.enter-left { animation: slideFromLeft .28s ease-out both; }
-.stagger > * { animation: fadeUp .35s ease-out both; animation-delay: calc(var(--i, 0) * 35ms); }
+.stagger > * { animation: fadeUp .3s ease-out both; animation-delay: calc(var(--i, 0) * 25ms); }
 .row[open] > .detail, .more[open] > :not(summary), .foot-more[open] > :not(summary) { animation: fadeUp .25s ease-out both; }
-.row > summary .row-glyph { transition: transform .2s; }
-.row[open] > summary .row-glyph { transform: scale(1.15); }
 #horoContent.fade, #synResult .pop { animation: pop .3s ease-out both; }
-.wheel .draw circle, .wheel .draw line { stroke-dasharray: 1000; animation: draw 1.2s ease-out both; }
-.wheel .draw text { animation: fadeIn .6s .5s ease-out both; }
-.track > i { transform-origin: left; animation: grow .6s ease-out both; }
-@keyframes grow { from { transform: scaleX(0); } to { transform: none; } }
+.wheel .draw .w-line { stroke-dasharray: 1000; animation: draw .8s ease-out both; }
+.wheel .draw text, .wheel .draw .w-asp, .wheel .draw .w-tick, .wheel .draw .w-axis { animation: fadeIn .4s .3s ease-out both; }
 
 /* ---------- Telefonda alt sekme çubuğu ---------- */
 @media (max-width: 640px) {
@@ -302,12 +296,17 @@ body, .panel, .topbar, .list, input, select, .segmented span { transition: backg
   }
   .tab-ico { display: block; line-height: 0; }
   .tab[aria-selected="true"] { color: var(--accent); }
-  .tab[aria-selected="true"] .tab-ico { animation: pop .25s ease-out; }
   body:has(#results:not(.hidden)) { padding-bottom: 76px; }
   .toast { bottom: 88px; }
   .topbar { position: static; }
+  html { scroll-padding-bottom: 96px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation: none !important; transition: none !important; }
 }
+
+/* Masaüstünde sekme odak çerçevesi kırpılmasın */
+.tab:focus-visible { outline-offset: -3px; border-radius: 6px; }
+.small-note.center { text-align: center; margin-top: 0; }
+form .btn.cancel { margin-top: 10px; }
